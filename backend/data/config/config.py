@@ -1,7 +1,7 @@
 CONFIG = {
     "deviceIp": {
         "db_key": "device_ip",
-        "default": "192.168.1.100",
+        "default": "192.168.69.2",
     },
 
     "subnetMask": {

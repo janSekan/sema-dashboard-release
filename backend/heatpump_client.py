@@ -12,7 +12,7 @@ DEVICE_USER = os.getenv("DEVICE_USER")
 DEVICE_PASSWORD = os.getenv("DEVICE_PASSWORD")
 
 def get_device_base_url():
-    ip = get_config("device_ip", "0.0.0.0")
+    ip = get_config("device_ip", "192.168.69.2")
     return f"http://{ip}/"
 
 
