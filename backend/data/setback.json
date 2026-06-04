@@ -1,0 +1,27 @@
+{
+  "heatOffset": 1,
+  "coolOffset": 3.5,
+  "schedule": {
+    "mon": [
+      {
+        "from": 36,
+        "to": 72
+      },
+      {
+        "from": 72,
+        "to": 78
+      }
+    ],
+    "tue": [],
+    "wed": [],
+    "thu": [],
+    "fri": [
+      {
+        "from": 36,
+        "to": 72
+      }
+    ],
+    "sat": [],
+    "sun": []
+  }
+}
