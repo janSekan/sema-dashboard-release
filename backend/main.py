@@ -334,7 +334,7 @@ def login(data: LoginRequest):
 @app.post("/api/heating-main-temp/reference")
 def post_heating_main_temp_reference(
     data: HeatingMainTempUpdate,
-    current_user=Depends(require_admin),
+    # current_user=Depends(require_admin),
 ):
     try:
         return set_heating_main_temp_reference(data.value)

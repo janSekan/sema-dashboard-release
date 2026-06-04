@@ -56,12 +56,12 @@ def seed_default_accounts(cur):
     if count > 0:
         return
 
-    default_password_hash = "$argon2id$v=19$m=65536,t=3,p=4$ElxEdeMxAbYXg5S/mi2JKA$c10zAC9hDKreynKl+jXi5Rn5bI5v6zDXSOlPWEyX9Nk"
+    
 
     accounts = [
-        ("user", "user", default_password_hash),
-        ("admin", "admin", default_password_hash),
-        ("superadmin", "superadmin", default_password_hash),
+        ("user", "user", "$argon2id$v=19$m=65536,t=3,p=4$xoQJz+tzGBcX5KEUt5HqSg$WFx1//EQrlWM2wKTWduOJ9uOeb8I1X1Fmtuj02je2hU"),
+        ("admin", "admin", "$argon2id$v=19$m=65536,t=3,p=4$JjdBAL4GYK1DdkIrrHIaNA$Vvn9Fhu5t9zTeXg92RHy2gA50Afd+ftzlJOhGuE/iCU"),
+        ("superadmin", "jan", "$argon2id$v=19$m=65536,t=3,p=4$+IEiD0TFc+IrWcUskZ9FOQ$iHDU65JalqxG41TH2wVbQv2FLWUGOsuYQPc8rs0yg38"),
     ]
 
     cur.executemany("""
