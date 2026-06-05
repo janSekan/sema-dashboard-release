@@ -1,5 +1,6 @@
 import subprocess
 import re
+import os
 
 def is_wifi_connected() -> bool:
     try:
@@ -17,25 +18,22 @@ def is_wifi_connected() -> bool:
 
 
 def is_setup_mode() -> bool:
-
-    force_setup = os.getenv(
-        "FORCE_SETUP_MODE",
-        "false"
-    ).lower() == "true"
+    force_setup = os.getenv("FORCE_SETUP_MODE", "false").lower() == "true"
 
     if force_setup:
         return True
 
     try:
         result = subprocess.run(
-        ["nmcli", "-t", "-f", "NAME,DEVICE,TYPE", "connection", "show", "--active"],
-        capture_output=True,
-        text=True,
-        timeout=5,
-    )
+            ["nmcli", "-t", "-f", "NAME,DEVICE,TYPE", "connection", "show", "--active"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
 
         for line in result.stdout.splitlines():
             parts = line.split(":")
+
             if len(parts) >= 2:
                 name = parts[0]
                 device = parts[1]
