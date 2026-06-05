@@ -1,0 +1,10 @@
+[Unit]
+Description=Run SEMA WiFi watcher periodically
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=30
+Unit=sema-wifi-watch.service
+
+[Install]
+WantedBy=timers.target

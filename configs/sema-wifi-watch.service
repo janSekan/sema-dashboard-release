@@ -1,0 +1,8 @@
+[Unit]
+Description=SEMA WiFi AP fallback watcher
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/jan/sema/scripts/wifi-watch.sh
