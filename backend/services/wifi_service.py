@@ -26,6 +26,26 @@ def is_setup_mode() -> bool:
     if force_setup:
         return True
 
+    try:
+        result = subprocess.run(
+        ["nmcli", "-t", "-f", "NAME,DEVICE,TYPE", "connection", "show", "--active"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+
+        for line in result.stdout.splitlines():
+            parts = line.split(":")
+            if len(parts) >= 2:
+                name = parts[0]
+                device = parts[1]
+
+                if name == "sema-ap" and device == "wlan0":
+                    return True
+
+    except Exception:
+        pass
+
     return not is_wifi_connected()
 
 
@@ -87,6 +107,14 @@ def scan_wifi_networks():
     
 def connect_wifi(ssid: str, password: str) -> dict:
     try:
+        # ak je AP aktívny, vypni ho
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "down", "sema-ap"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
         result = subprocess.run(
             [
                 "sudo",
@@ -106,6 +134,14 @@ def connect_wifi(ssid: str, password: str) -> dict:
         )
 
         if result.returncode != 0:
+            # ak sa pripojenie nepodarí, znova zapni AP
+            subprocess.run(
+                ["sudo", "nmcli", "connection", "up", "sema-ap"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
             return {
                 "ok": False,
                 "error": result.stderr.strip() or result.stdout.strip(),
@@ -121,4 +157,3 @@ def connect_wifi(ssid: str, password: str) -> dict:
             "ok": False,
             "error": str(e),
         }
-
