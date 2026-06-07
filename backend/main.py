@@ -8,6 +8,7 @@ from fastapi import FastAPI, Body, HTTPException, Depends
 from db import init_db, log_temps, get_last_measurements, get_config, set_config, set_account, get_account
 from fastapi.middleware.cors import CORSMiddleware
 from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi
+from services.device_info import get_device_info
 from helpers import (
     parse_setback_param,
     parse_settings_params,
@@ -311,6 +312,10 @@ def update_control(data: ControlUpdate):
     except Exception as e:
         print("CONTROL ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/device-info")
+def device_info(): 
+    return get_device_info()
     
 
 @app.post("/api/login", response_model=TokenResponse)

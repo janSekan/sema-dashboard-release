@@ -1,6 +1,9 @@
 import subprocess
 import re
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def is_wifi_connected() -> bool:
     try:
@@ -18,9 +21,16 @@ def is_wifi_connected() -> bool:
 
 
 def is_setup_mode() -> bool:
-    force_setup = os.getenv("FORCE_SETUP_MODE", "false").lower() == "true"
+    if (os.getenv("APP_ENV")=="development"):
+        return False
+    force_setup_raw = os.getenv("FORCE_SETUP_MODE", "false")
+    force_setup = force_setup_raw.strip().lower() == "true"
+
+    print("FORCE_SETUP_MODE raw:", force_setup_raw)
+    print("force_setup:", force_setup)
 
     if force_setup:
+        print("SETUP MODE: forced by env")
         return True
 
     try:
@@ -31,21 +41,33 @@ def is_setup_mode() -> bool:
             timeout=5,
         )
 
+        print("nmcli active:")
+        print(result.stdout)
+
         for line in result.stdout.splitlines():
             parts = line.split(":")
 
-            if len(parts) >= 2:
+            if len(parts) >= 3:
                 name = parts[0]
                 device = parts[1]
+                conn_type = parts[2]
+
+                print("connection:", name, device, conn_type)
 
                 if name == "sema-ap" and device == "wlan0":
+                    print("SETUP MODE: sema-ap active")
                     return True
 
-    except Exception:
-        pass
+    except Exception as e:
+        print("setup mode nmcli error:", e)
 
-    return not is_wifi_connected()
+    wifi_connected = is_wifi_connected()
+    print("wifi_connected:", wifi_connected)
 
+    result = not wifi_connected
+    print("SETUP MODE result:", result)
+
+    return result
 
 def scan_wifi_networks():
     try:

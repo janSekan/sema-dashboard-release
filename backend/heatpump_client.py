@@ -10,9 +10,14 @@ load_dotenv()
 # DEVICE_USER get_auth())
 DEVICE_USER = os.getenv("DEVICE_USER")
 DEVICE_PASSWORD = os.getenv("DEVICE_PASSWORD")
+APP_ENV = os.getenv("APP_ENV")
 
 def get_device_base_url():
-    ip = get_config("device_ip", "192.168.69.2")
+    if APP_ENV == "development":
+        ip = os.getenv("DEVICE_IP_DEV", "192.168.33.30:8081")
+    else:
+        ip = get_config("device_ip", "192.168.69.2")
+
     return f"http://{ip}/"
 
 
