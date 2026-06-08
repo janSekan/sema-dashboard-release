@@ -127,7 +127,7 @@ def scan_wifi_networks():
     
 def connect_wifi(ssid: str, password: str) -> dict:
     try:
-        # ak je AP aktívny, vypni ho
+        # vypni AP
         subprocess.run(
             ["sudo", "nmcli", "connection", "down", "sema-ap"],
             capture_output=True,
@@ -135,6 +135,15 @@ def connect_wifi(ssid: str, password: str) -> dict:
             timeout=10,
         )
 
+        # zmaž starý profil s rovnakým SSID
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "delete", ssid],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        # vytvor nové pripojenie
         result = subprocess.run(
             [
                 "sudo",
@@ -154,7 +163,6 @@ def connect_wifi(ssid: str, password: str) -> dict:
         )
 
         if result.returncode != 0:
-            # ak sa pripojenie nepodarí, znova zapni AP
             subprocess.run(
                 ["sudo", "nmcli", "connection", "up", "sema-ap"],
                 capture_output=True,
@@ -167,12 +175,34 @@ def connect_wifi(ssid: str, password: str) -> dict:
                 "error": result.stderr.strip() or result.stdout.strip(),
             }
 
+        # dôležité: zabezpeč autoconnect domácej WiFi
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "modify", ssid, "connection.autoconnect", "yes"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "modify", ssid, "connection.autoconnect-priority", "10"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
         return {
             "ok": True,
             "message": "WiFi pripojenie bolo úspešné",
         }
 
     except Exception as e:
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "up", "sema-ap"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
         return {
             "ok": False,
             "error": str(e),
