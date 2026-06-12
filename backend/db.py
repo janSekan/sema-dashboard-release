@@ -20,6 +20,11 @@ def init_db():
             it REAL,
             wt REAL,
             ht REAL,
+            ext REAL,
+            eqt REAL,
+            et REAL,
+            ft REAL,
+            gt REAL,
             pr REAL
         )
     """)
@@ -144,14 +149,14 @@ def set_account(role, username, password_hash):
     conn.close()
 
 
-def log_temps(outTemp, inTemp, waterTemp, heatTemp, progress):
+def log_temps(outTemp, inTemp, waterTemp, heatTemp, exTemp, eqTemp, eTemp, fTemp, gTemp, progress):
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO measurements (ot, it, wt, ht, pr)
-        VALUES (?, ?, ?, ?, ?)
-    """, (outTemp, inTemp, waterTemp, heatTemp, progress))
+        INSERT INTO measurements (ot, it, wt, ht, pr, ext, eqt, et, ft, gt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (outTemp, inTemp, waterTemp, heatTemp, progress, exTemp, eqTemp, eTemp, fTemp, gTemp))
 
     conn.commit()
     conn.close()
@@ -162,9 +167,9 @@ def get_last_measurements(limit=200):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT ts, ot, it, wt, ht, pr
+        SELECT ts, ot, it, wt, ht, ext, eqt, et, ft, gt, pr
         FROM (
-            SELECT ts, ot, it, wt, ht, pr
+            SELECT ts, ot, it, wt, ht, ext, eqt, et, ft, gt, pr
             FROM measurements
             ORDER BY ts DESC
             LIMIT ?

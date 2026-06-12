@@ -199,7 +199,13 @@ def get_history(limit: int = 20):
     indoor = []
     water = []
     heat = []
+    exchanger = []
+    equiterm = []
+    e = []
+    f = []
+    g = []
     progress = []
+
 
     for r in rows:
         ts.append(r[0])
@@ -207,7 +213,12 @@ def get_history(limit: int = 20):
         indoor.append(r[2])
         water.append(r[3])
         heat.append(r[4])
-        progress.append(r[5])
+        exchanger.append(r[5])
+        equiterm.append(r[6])
+        e.append(r[7])
+        f.append(r[9])
+        g.append(r[9])
+        progress.append(r[10])
 
     return {
         "ts": ts,
@@ -215,6 +226,11 @@ def get_history(limit: int = 20):
         "indoor": indoor,
         "water": water,
         "heat": heat,
+        "exchanger": exchanger,
+        "equiterm": equiterm,
+        "eTemp": e,
+        "fTemp": f,
+        "gTemp": g,
         "progress": progress
     }
 
@@ -373,6 +389,11 @@ async def measurement_logger():
                 data["indoorTemp"],
                 data["waterTemp"],
                 data["heatTemp"],
+                data["exchangerTemp"],
+                data["equitermTemp"],
+                data["eTemp"],
+                data["fTemp"],
+                data["fTemp"],
                 data["progress"],
             )
         except Exception as e:

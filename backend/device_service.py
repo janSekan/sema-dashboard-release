@@ -44,6 +44,24 @@ def fetch_status_xml():
         "st5": int(root.findtext("st5", default="0")),
     }
 
+def fetch_temps_xml():
+    response = requests.get(
+        get_device_url("temperatures.xml"),
+        auth=get_auth(),
+        timeout=5,
+    )
+    response.raise_for_status()
+
+    root = ET.fromstring(response.text)
+
+    return {
+        "tep1": parse_temp(root.findtext("tep1", default="0")),
+        "tep5": parse_temp(root.findtext("tep5", default="0")),
+        "tep6": parse_temp(root.findtext("tep6", default="0")),
+        "tep7": parse_temp(root.findtext("tep7", default="0")),
+        "tep9": parse_temp(root.findtext("tep9", default="0")),
+    }
+
 def fetch_control_xml():
     response = requests.get(
         get_device_url("control.xml"),
@@ -63,6 +81,7 @@ def fetch_control_xml():
 
 def get_dashboard_data():
     raw = fetch_status_xml()
+    temps = fetch_temps_xml()
 
     season_map = {
         1: "Kúrenie",
@@ -89,6 +108,13 @@ def get_dashboard_data():
         "outdoorTemp": raw["tep8"],
         "waterTemp": raw["tep4"],
         "heatTemp": raw["tep3"],
+
+        "exchangerTemp":temps["tep1"],
+        "eTemp":temps["tep5"],
+        "fTemp":temps["tep6"],
+        "gTemp":temps["tep7"],
+        "equitermTemp":temps["tep9"],
+        
         "power": str(raw["pwr"]),
         "mode": dhw_map.get(raw["st3"], "Standby"),
         "heatCool": season_map.get(raw["st1"], "Neznáme"),

@@ -3,8 +3,11 @@ set -e
 
 cd /home/jan/sema
 
-echo "Pulling latest release..."
-git pull
+echo "Fetching latest release..."
+git fetch origin
+
+echo "Resetting to origin/main..."
+git reset --hard origin/main
 
 echo "Restarting SEMA service..."
 sudo systemctl restart sema
