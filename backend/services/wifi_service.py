@@ -2,8 +2,11 @@ import subprocess
 import re
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
+
+WIFI_SETUP_LOCK = Path("/tmp/sema-wifi-setup-active")
 
 def is_wifi_connected() -> bool:
     try:
@@ -207,3 +210,7 @@ def connect_wifi(ssid: str, password: str) -> dict:
             "ok": False,
             "error": str(e),
         }
+    
+
+def touch_wifi_setup_lock():
+    WIFI_SETUP_LOCK.touch()

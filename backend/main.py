@@ -7,7 +7,7 @@ from device_service import get_dashboard_data, get_control_data, fetch_status_xm
 from fastapi import FastAPI, Body, HTTPException, Depends
 from db import init_db, log_temps, get_last_measurements, get_config, set_config, set_account, get_account
 from fastapi.middleware.cors import CORSMiddleware
-from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi
+from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi, touch_wifi_setup_lock
 from services.device_info import get_device_info
 from helpers import (
     parse_setback_param,
@@ -250,12 +250,14 @@ def get_setup_mode():
     
 @app.get("/api/wifi/scan")
 def wifi_scan():
+    touch_wifi_setup_lock()
     return {
         "networks": scan_wifi_networks()
     }
 
 @app.post("/api/wifi/connect")
 def wifi_connect(data: WifiConnectRequest):
+    touch_wifi_setup_lock()
     result = connect_wifi(data.ssid, data.password)
 
     if not result.get("ok"):
