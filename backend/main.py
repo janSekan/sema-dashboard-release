@@ -59,6 +59,8 @@ from services.heat_curve_service import (
 
 DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
+API_BASE = "/device-api"
+
 
 class ControlUpdate(BaseModel):
     powerMode: Optional[str] = None
@@ -143,7 +145,7 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 
-@app.get("/api/device/status")
+@app.get(f"{API_BASE}/device/status")
 def device_status():
     return fetch_status_xml()
 
@@ -170,7 +172,7 @@ def root():
     return {"status": "SEMA backend running"}
 
 
-# @app.get("/api/dashboard")
+# @app.get(f"{API_BASE}/dashboard")
 # def get_dashboard():
 #     data = {
 #         "dashboard": get_dashboard_data(),
@@ -178,7 +180,7 @@ def root():
 #     }
 #     return data
 
-@app.get("/api/dashboard")
+@app.get(f"{API_BASE}/dashboard")
 def get_dashboard():
     try:
         return {
@@ -189,7 +191,7 @@ def get_dashboard():
         print("DASHBOARD ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/history")
+@app.get(f"{API_BASE}/history")
 def get_history(limit: int = 20):
 
     rows = get_last_measurements(limit)
@@ -234,14 +236,14 @@ def get_history(limit: int = 20):
         "progress": progress
     }
 
-@app.get("/api/heating-main-temp")
+@app.get(f"{API_BASE}/heating-main-temp")
 def get_heating_main_temp():
     return {
         "heatingMainTemp": load_heating_main_temp()
     }
 
 
-@app.post("/api/heating-main-temp")
+@app.post(f"{API_BASE}/heating-main-temp")
 def post_heating_main_temp(data: HeatingMainTempUpdate):
     try:
         return set_heating_main_temp(data.value, build_parameters_payload)
@@ -249,7 +251,7 @@ def post_heating_main_temp(data: HeatingMainTempUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/setback_params")
+@app.get(f"{API_BASE}/setback_params")
 def get_parameters():
     try:
         html = fetch_parameters_html()
@@ -258,20 +260,20 @@ def get_parameters():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/api/system/setup-mode")
+@app.get(f"{API_BASE}/system/setup-mode")
 def get_setup_mode():
     return {
         "setupMode": is_setup_mode()
     }
     
-@app.get("/api/wifi/scan")
+@app.get(f"{API_BASE}/wifi/scan")
 def wifi_scan():
     touch_wifi_setup_lock()
     return {
         "networks": scan_wifi_networks()
     }
 
-@app.post("/api/wifi/connect")
+@app.post(f"{API_BASE}/wifi/connect")
 def wifi_connect(data: WifiConnectRequest):
     touch_wifi_setup_lock()
     result = connect_wifi(data.ssid, data.password)
@@ -283,7 +285,7 @@ def wifi_connect(data: WifiConnectRequest):
         )
 
     return result
-@app.get("/api/settings")
+@app.get(f"{API_BASE}/settings")
 def get_settings():
     try:
         html = fetch_parameters_html()
@@ -292,7 +294,7 @@ def get_settings():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/setback")
+@app.get(f"{API_BASE}/setback")
 def get_setback_schedule():
     try:
         html = fetch_timer_html()
@@ -302,12 +304,12 @@ def get_setback_schedule():
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.get("/api/health")
+@app.get(f"{API_BASE}/health")
 def health():
     return {"ok": True}
 
 
-@app.get("/api/device/health")
+@app.get(f"{API_BASE}/device/health")
 def device_health():
     try:
         fetch_status_xml()
@@ -316,7 +318,7 @@ def device_health():
         return {"connected": False}
 
 
-@app.post("/api/control")
+@app.post(f"{API_BASE}/control")
 def update_control(data: ControlUpdate):
     try:
         print("CONTROL DATA:", data)
@@ -331,12 +333,12 @@ def update_control(data: ControlUpdate):
         print("CONTROL ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/api/device-info")
+@app.get(f"{API_BASE}/device-info")
 def device_info(): 
     return get_device_info()
     
 
-@app.post("/api/login", response_model=TokenResponse)
+@app.post(f"{API_BASE}/login", response_model=TokenResponse)
 def login(data: LoginRequest):
     user = authenticate_user(data.username, data.password)
     if not user:
@@ -354,7 +356,7 @@ def login(data: LoginRequest):
     }
 
 
-@app.post("/api/heating-main-temp/reference")
+@app.post(f"{API_BASE}/heating-main-temp/reference")
 def post_heating_main_temp_reference(
     data: HeatingMainTempUpdate,
     # current_user=Depends(require_admin),
@@ -365,11 +367,11 @@ def post_heating_main_temp_reference(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/me")
+@app.get(f"{API_BASE}/me")
 def me(current_user = Depends(get_current_user)):
     return current_user
     
-@app.get("/api/account")
+@app.get(f"{API_BASE}/account")
 def get_my_account(current_user=Depends(get_current_user)):
     return {
         "username": current_user.username,
@@ -433,7 +435,7 @@ def build_parameters_payload(current_form: dict, data):
     return form
 
 
-@app.post("/api/settings")
+@app.post(f"{API_BASE}/settings")
 def post_settings(data: SettingsUpdate):
     try:
         html = fetch_parameters_html()
@@ -446,7 +448,7 @@ def post_settings(data: SettingsUpdate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.post("/api/setback")
+@app.post(f"{API_BASE}/setback")
 def post_setback(data: SetbackUpdate):
     try:
         # 1. uloženie offsetov do parameters.htm
@@ -489,7 +491,7 @@ def build_timer_payload(current_form: dict, schedule: dict):
     return form
 
 
-@app.get("/api/config")
+@app.get(f"{API_BASE}/config")
 def load_config():
 
     result = {}
@@ -503,7 +505,7 @@ def load_config():
     return result
 
 
-@app.post("/api/config")
+@app.post(f"{API_BASE}/config")
 def save_config(payload: dict):
 
     for frontend_key, value in payload.items():
@@ -521,7 +523,7 @@ def save_config(payload: dict):
     return {"ok": True}
 
 
-@app.get("/api/accounts/{role}")
+@app.get(API_BASE +"/accounts/{role}")
 def get_account_info(
     role: str,
     current_user=Depends(get_current_user),
@@ -560,7 +562,7 @@ def get_account_info(
     return account
 
 
-@app.post("/api/accounts/{role}")
+@app.post( API_BASE + "/accounts/{role}")
 def update_account(
     role: str,
     data: AccountUpdate,
