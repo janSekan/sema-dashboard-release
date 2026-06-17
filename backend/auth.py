@@ -3,13 +3,14 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from pwdlib import PasswordHash
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from db import get_account
+from core.proxy_auth import get_proxy_user
 
 load_dotenv()
 
@@ -75,28 +76,6 @@ def authenticate_user(username: str, password: str) -> Optional[User]:
         disabled=db_user["disabled"],
     )
 
-# def authenticate_user(username: str, password: str):
-#     users = get_users_db()
-#     db_user = users.get(username)
-
-#     print("USERS:", users)
-#     print("DB_USER:", db_user)
-
-#     if not db_user:
-#         return None
-
-#     ok = verify_password(password, db_user["password_hash"])
-#     print("PASSWORD OK:", ok)
-
-#     if not ok:
-#         return None
-
-#     return User(
-#         username=db_user["username"],
-#         role=db_user["role"],
-#         disabled=db_user["disabled"],
-#     )
-
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -119,7 +98,19 @@ def decode_token(token: str) -> dict:
         )
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+def get_current_user(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+) -> User:
+    proxy_user = get_proxy_user(request)
+
+    if proxy_user:
+        return User(
+            username=proxy_user["username"],
+            role=proxy_user["role"],
+            disabled=False,
+        )
+
     payload = decode_token(token)
 
     username = payload.get("sub")
@@ -145,7 +136,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         role=db_user["role"],
         disabled=db_user["disabled"],
     )
-
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role not in ["admin", "superadmin"]:

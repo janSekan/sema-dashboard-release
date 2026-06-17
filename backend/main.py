@@ -1,10 +1,11 @@
 
 import os
+
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from device_service import get_dashboard_data, get_control_data, fetch_status_xml
-from fastapi import FastAPI, Body, HTTPException, Depends
+from fastapi import FastAPI, Body, HTTPException, Depends, Request
 from db import init_db, log_temps, get_last_measurements, get_config, set_config, set_account, get_account
 from fastapi.middleware.cors import CORSMiddleware
 from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi, touch_wifi_setup_lock
@@ -190,6 +191,13 @@ def get_dashboard():
     except Exception as e:
         print("DASHBOARD ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/device-api/proxy-test")
+def proxy_test(request: Request):
+    return {
+        "user": request.headers.get("X-SEMA-Proxy-User"),
+        "role": request.headers.get("X-SEMA-Proxy-Role"),
+    }
 
 @app.get(f"{API_BASE}/history")
 def get_history(limit: int = 20):

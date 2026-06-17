@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 CONFIG = {
     "deviceIp": {
         "db_key": "device_ip",
@@ -14,3 +18,5 @@ CONFIG = {
         "default": 20.0,
     },
 }
+
+PROXY_TOKEN = os.getenv("PROXY_TOKEN", "")
