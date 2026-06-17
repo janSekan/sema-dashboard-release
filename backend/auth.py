@@ -19,7 +19,10 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 
 password_hash = PasswordHash.recommended()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/device-api/login")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/device-api/login",
+    auto_error=False,
+)
 
 
 class TokenResponse(BaseModel):
@@ -100,7 +103,7 @@ def decode_token(token: str) -> dict:
 
 def get_current_user(
     request: Request,
-    token: str = Depends(oauth2_scheme),
+    token: str | None = Depends(oauth2_scheme),
 ) -> User:
     proxy_user = get_proxy_user(request)
 
@@ -109,6 +112,13 @@ def get_current_user(
             username=proxy_user["username"],
             role=proxy_user["role"],
             disabled=False,
+        )
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     payload = decode_token(token)
