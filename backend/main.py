@@ -10,6 +10,7 @@ from db import init_db, log_temps, get_last_measurements, get_config, set_config
 from fastapi.middleware.cors import CORSMiddleware
 from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi, touch_wifi_setup_lock
 from services.device_info import get_device_info
+from core.proxy_auth import require_trusted_access
 from helpers import (
     parse_setback_param,
     parse_settings_params,
@@ -182,7 +183,9 @@ def root():
 #     return data
 
 @app.get(f"{API_BASE}/dashboard")
-def get_dashboard():
+def get_dashboard(
+    trusted=Depends(require_trusted_access),
+):
     try:
         return {
             "dashboard": get_dashboard_data(),
@@ -200,7 +203,7 @@ def proxy_test(request: Request):
     }
 
 @app.get(f"{API_BASE}/history")
-def get_history(limit: int = 20):
+def get_history(limit: int = 20, trusted=Depends(require_trusted_access),):
 
     rows = get_last_measurements(limit)
 
@@ -245,14 +248,14 @@ def get_history(limit: int = 20):
     }
 
 @app.get(f"{API_BASE}/heating-main-temp")
-def get_heating_main_temp():
+def get_heating_main_temp(trusted=Depends(require_trusted_access),):
     return {
         "heatingMainTemp": load_heating_main_temp()
     }
 
 
 @app.post(f"{API_BASE}/heating-main-temp")
-def post_heating_main_temp(data: HeatingMainTempUpdate):
+def post_heating_main_temp(data: HeatingMainTempUpdate,trusted=Depends(require_trusted_access),):
     try:
         return set_heating_main_temp(data.value, build_parameters_payload)
     except Exception as e:
@@ -260,7 +263,7 @@ def post_heating_main_temp(data: HeatingMainTempUpdate):
 
 
 @app.get(f"{API_BASE}/setback_params")
-def get_parameters():
+def get_parameters(trusted=Depends(require_trusted_access),):
     try:
         html = fetch_parameters_html()
         data = parse_setback_param(html)
@@ -294,7 +297,7 @@ def wifi_connect(data: WifiConnectRequest):
 
     return result
 @app.get(f"{API_BASE}/settings")
-def get_settings():
+def get_settings(trusted=Depends(require_trusted_access),):
     try:
         html = fetch_parameters_html()
         return parse_settings_params(html)
@@ -303,7 +306,7 @@ def get_settings():
 
 
 @app.get(f"{API_BASE}/setback")
-def get_setback_schedule():
+def get_setback_schedule(trusted=Depends(require_trusted_access),):
     try:
         html = fetch_timer_html()
         return parse_timer_params(html)
@@ -327,7 +330,7 @@ def device_health():
 
 
 @app.post(f"{API_BASE}/control")
-def update_control(data: ControlUpdate):
+def update_control(data: ControlUpdate, trusted=Depends(require_trusted_access),):
     try:
         print("CONTROL DATA:", data)
 
@@ -342,12 +345,12 @@ def update_control(data: ControlUpdate):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.get(f"{API_BASE}/device-info")
-def device_info(): 
+def device_info(trusted=Depends(require_trusted_access),): 
     return get_device_info()
     
 
 @app.post(f"{API_BASE}/login", response_model=TokenResponse)
-def login(data: LoginRequest):
+def login(data: LoginRequest, trusted=Depends(require_trusted_access),):
     user = authenticate_user(data.username, data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Nesprávne meno alebo heslo")
@@ -367,6 +370,7 @@ def login(data: LoginRequest):
 @app.post(f"{API_BASE}/heating-main-temp/reference")
 def post_heating_main_temp_reference(
     data: HeatingMainTempUpdate,
+    trusted=Depends(require_trusted_access),
     # current_user=Depends(require_admin),
 ):
     try:
@@ -376,11 +380,11 @@ def post_heating_main_temp_reference(
 
 
 @app.get(f"{API_BASE}/me")
-def me(current_user = Depends(get_current_user)):
+def me(current_user = Depends(get_current_user),trusted=Depends(require_trusted_access),):
     return current_user
     
 @app.get(f"{API_BASE}/account")
-def get_my_account(current_user=Depends(get_current_user)):
+def get_my_account(current_user=Depends(get_current_user),trusted=Depends(require_trusted_access),):
     return {
         "username": current_user.username,
         "role": current_user.role,
@@ -444,7 +448,7 @@ def build_parameters_payload(current_form: dict, data):
 
 
 @app.post(f"{API_BASE}/settings")
-def post_settings(data: SettingsUpdate):
+def post_settings(data: SettingsUpdate, trusted=Depends(require_trusted_access),):
     try:
         html = fetch_parameters_html()
         current_form = extract_all_parameter_inputs(html)
@@ -457,7 +461,7 @@ def post_settings(data: SettingsUpdate):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post(f"{API_BASE}/setback")
-def post_setback(data: SetbackUpdate):
+def post_setback(data: SetbackUpdate, trusted=Depends(require_trusted_access),):
     try:
         # 1. uloženie offsetov do parameters.htm
         params_html = fetch_parameters_html()
@@ -500,7 +504,7 @@ def build_timer_payload(current_form: dict, schedule: dict):
 
 
 @app.get(f"{API_BASE}/config")
-def load_config():
+def load_config(trusted=Depends(require_trusted_access),):
 
     result = {}
 
@@ -514,7 +518,7 @@ def load_config():
 
 
 @app.post(f"{API_BASE}/config")
-def save_config(payload: dict):
+def save_config(payload: dict,trusted=Depends(require_trusted_access),):
 
     for frontend_key, value in payload.items():
 
@@ -535,6 +539,7 @@ def save_config(payload: dict):
 def get_account_info(
     role: str,
     current_user=Depends(get_current_user),
+    trusted=Depends(require_trusted_access),
 ):
     valid_roles = ["user", "admin", "superadmin"]
 
@@ -575,6 +580,7 @@ def update_account(
     role: str,
     data: AccountUpdate,
     current_user=Depends(get_current_user),
+    trusted=Depends(require_trusted_access),
 ):
 
     if current_user.role == "user":

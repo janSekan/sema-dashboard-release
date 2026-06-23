@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException, status
-from data.config.config import PROXY_TOKEN
+from data.config.config import PROXY_TOKEN, LAN_ACCESS
 
 
 def get_proxy_user(request: Request):
@@ -55,7 +55,12 @@ def is_trusted_access(request: Request) -> bool:
 def require_trusted_access(request: Request):
     """
     Zakáže lokálny LAN prístup mimo portálu a Tailscale.
+
+    Ak LAN_ACCESS=true, lokálny prístup je povolený.
     """
+
+    if LAN_ACCESS:
+        return True
 
     if not is_trusted_access(request):
         raise HTTPException(
