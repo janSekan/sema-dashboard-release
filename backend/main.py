@@ -10,7 +10,9 @@ from db import init_db, log_temps, get_last_measurements, get_config, set_config
 from fastapi.middleware.cors import CORSMiddleware
 from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi, touch_wifi_setup_lock
 from services.device_info import get_device_info
-from core.proxy_auth import require_trusted_access
+from core.proxy_auth import require_trusted_access, is_trusted_access
+from data.config.config import LAN_ACCESS
+
 from helpers import (
     parse_setback_param,
     parse_settings_params,
@@ -147,9 +149,6 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 
-@app.get(f"{API_BASE}/device/status")
-def device_status():
-    return fetch_status_xml()
 
 app.add_middleware(
     CORSMiddleware,
@@ -163,6 +162,44 @@ APP_ENV = os.getenv("APP_ENV", "development")
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
 
+@app.get("/device-api/access-mode")
+def access_mode(request: Request):
+    return {
+        "trusted": is_trusted_access(request),
+        "lan_access": LAN_ACCESS,
+    }
+
+@app.get(f"{API_BASE}/system/setup-mode")
+def get_setup_mode():
+    return {
+        "setupMode": is_setup_mode()
+    }
+    
+@app.get(f"{API_BASE}/wifi/scan")
+def wifi_scan():
+    touch_wifi_setup_lock()
+    return {
+        "networks": scan_wifi_networks()
+    }
+
+@app.post(f"{API_BASE}/wifi/connect")
+def wifi_connect(data: WifiConnectRequest):
+    touch_wifi_setup_lock()
+    result = connect_wifi(data.ssid, data.password)
+
+    if not result.get("ok"):
+        raise HTTPException(
+            status_code=500,
+            detail=result.get("error", "WiFi connection failed"),
+        )
+
+    return result
+
+@app.get(f"{API_BASE}/device/status")
+def device_status():
+    return fetch_status_xml()
+
+
 @app.get("/")
 def root():
     if APP_ENV == "production":
@@ -174,13 +211,6 @@ def root():
     return {"status": "SEMA backend running"}
 
 
-# @app.get(f"{API_BASE}/dashboard")
-# def get_dashboard():
-#     data = {
-#         "dashboard": get_dashboard_data(),
-#         "control": get_control_data()
-#     }
-#     return data
 
 @app.get(f"{API_BASE}/dashboard")
 def get_dashboard(
@@ -271,31 +301,7 @@ def get_parameters(trusted=Depends(require_trusted_access),):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get(f"{API_BASE}/system/setup-mode")
-def get_setup_mode():
-    return {
-        "setupMode": is_setup_mode()
-    }
-    
-@app.get(f"{API_BASE}/wifi/scan")
-def wifi_scan():
-    touch_wifi_setup_lock()
-    return {
-        "networks": scan_wifi_networks()
-    }
 
-@app.post(f"{API_BASE}/wifi/connect")
-def wifi_connect(data: WifiConnectRequest):
-    touch_wifi_setup_lock()
-    result = connect_wifi(data.ssid, data.password)
-
-    if not result.get("ok"):
-        raise HTTPException(
-            status_code=500,
-            detail=result.get("error", "WiFi connection failed"),
-        )
-
-    return result
 @app.get(f"{API_BASE}/settings")
 def get_settings(trusted=Depends(require_trusted_access),):
     try:
@@ -644,3 +650,4 @@ if APP_ENV == "production":
             status_code=404,
             detail="Frontend build not found",
         )
+    
