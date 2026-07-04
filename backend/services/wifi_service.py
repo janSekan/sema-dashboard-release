@@ -76,6 +76,7 @@ def scan_wifi_networks():
     try:
         result = subprocess.run(
             [
+                "sudo",
                 "nmcli",
                 "-t",
                 "-f",
