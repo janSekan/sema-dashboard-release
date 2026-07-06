@@ -1,5 +1,6 @@
 import subprocess
 import re
+import time
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -194,12 +195,36 @@ def connect_wifi(ssid: str, password: str) -> dict:
             timeout=10,
         )
 
+        # vypni autoconnect AP
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "modify", "sema-ap", "connection.autoconnect", "no"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
         return {
             "ok": True,
             "message": "WiFi pripojenie bolo úspešné",
         }
 
     except Exception as e:
+        subprocess.run(
+            ["sudo", "nmcli", "connection", "modify", "sema-ap", "connection.autoconnect", "yes"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        subprocess.run(
+            ["sudo", "nmcli", "device", "disconnect", "wlan0"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        time.sleep(2)
+
         subprocess.run(
             ["sudo", "nmcli", "connection", "up", "sema-ap"],
             capture_output=True,
