@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -e
+
+set -euo pipefail
 
 ENV_FILE="/home/jan/sema/.env"
 
@@ -8,80 +9,161 @@ HOSTNAME_VALUE=""
 PROXY_TOKEN=""
 LAN_ACCESS="false"
 
+# Common credentials for all SEMA devices
+DEVICE_USER="admin"
+DEVICE_PASSWORD="1937"
+
+
+# ---------------------------------------------------------
+# Parse arguments
+# ---------------------------------------------------------
+
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --device-id)
-      DEVICE_ID="$2"
-      shift 2
-      ;;
-    --hostname)
-      HOSTNAME_VALUE="$2"
-      shift 2
-      ;;
-    --proxy-token)
-      PROXY_TOKEN="$2"
-      shift 2
-      ;;
-    --lan-access)
-      LAN_ACCESS="$2"
-      shift 2
-      ;;
-    *)
-      echo "Unknown option: $1"
-      exit 1
-      ;;
-  esac
+    case "$1" in
+        --device-id)
+            DEVICE_ID="$2"
+            shift 2
+            ;;
+
+        --hostname)
+            HOSTNAME_VALUE="$2"
+            shift 2
+            ;;
+
+        --proxy-token)
+            PROXY_TOKEN="$2"
+            shift 2
+            ;;
+
+        --lan-access)
+            LAN_ACCESS="$2"
+            shift 2
+            ;;
+
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
 done
 
+
+# ---------------------------------------------------------
+# Validate arguments
+# ---------------------------------------------------------
+
 if [[ -z "$DEVICE_ID" || -z "$HOSTNAME_VALUE" || -z "$PROXY_TOKEN" ]]; then
-  echo "Missing required arguments."
-  echo ""
-  echo "Usage:"
-  echo "sudo sema-provision --device-id SEMA-001 --hostname sema-001 --proxy-token TOKEN"
-  exit 1
+    echo
+    echo "Missing required arguments."
+    echo
+    echo "Usage:"
+    echo "sudo sema-provision \\"
+    echo "  --device-id SEMA-001 \\"
+    echo "  --hostname sema-001 \\"
+    echo "  --proxy-token TOKEN"
+    echo
+    exit 1
 fi
+
+
+# ---------------------------------------------------------
+# Create .env if necessary
+# ---------------------------------------------------------
 
 if [[ ! -f "$ENV_FILE" ]]; then
-  echo ".env file not found: $ENV_FILE"
-  exit 1
+    echo "Creating SEMA .env..."
+
+    install \
+        -o jan \
+        -g jan \
+        -m 0600 \
+        /dev/null \
+        "$ENV_FILE"
 fi
 
-set_env() {
-  KEY="$1"
-  VALUE="$2"
 
-  if grep -q "^${KEY}=" "$ENV_FILE"; then
-    sed -i "s|^${KEY}=.*|${KEY}=${VALUE}|" "$ENV_FILE"
-  else
-    echo "${KEY}=${VALUE}" >> "$ENV_FILE"
-  fi
+# ---------------------------------------------------------
+# Helper for updating .env
+# ---------------------------------------------------------
+
+set_env() {
+    local KEY="$1"
+    local VALUE="$2"
+
+    if grep -q "^${KEY}=" "$ENV_FILE"; then
+        sed -i "s|^${KEY}=.*|${KEY}=${VALUE}|" "$ENV_FILE"
+    else
+        echo "${KEY}=${VALUE}" >> "$ENV_FILE"
+    fi
 }
 
+
+echo
 echo "Provisioning SEMA device..."
-echo ""
+echo
+
+
+# ---------------------------------------------------------
+# Configure application
+# ---------------------------------------------------------
 
 set_env "DEVICE_ID" "$DEVICE_ID"
 echo "✔ DEVICE_ID=$DEVICE_ID"
 
-set_env "HOSTNAME" "$HOSTNAME_VALUE"
-echo "✔ HOSTNAME=$HOSTNAME_VALUE"
-
 set_env "PROXY_TOKEN" "$PROXY_TOKEN"
-echo "✔ PROXY_TOKEN updated"
+echo "✔ PROXY_TOKEN configured"
+
+set_env "FORCE_SETUP_MODE" "false"
+echo "✔ FORCE_SETUP_MODE=false"
+
+set_env "DEVICE_USER" "$DEVICE_USER"
+echo "✔ DEVICE_USER=$DEVICE_USER"
+
+set_env "DEVICE_PASSWORD" "$DEVICE_PASSWORD"
+echo "✔ DEVICE_PASSWORD configured"
+
+set_env "APP_ENV" "production"
+echo "✔ APP_ENV=production"
 
 set_env "LAN_ACCESS" "$LAN_ACCESS"
 echo "✔ LAN_ACCESS=$LAN_ACCESS"
 
-hostnamectl set-hostname "$HOSTNAME_VALUE"
-echo "✔ System hostname updated"
 
-systemctl restart sema.service
-echo "✔ sema.service restarted"
+# ---------------------------------------------------------
+# Configure hostname
+# ---------------------------------------------------------
+
+hostnamectl set-hostname "$HOSTNAME_VALUE"
+echo "✔ Hostname=$HOSTNAME_VALUE"
+
+
+# ---------------------------------------------------------
+# Ensure permissions
+# ---------------------------------------------------------
+
+chown jan:jan "$ENV_FILE"
+chmod 0600 "$ENV_FILE"
+
+
+# ---------------------------------------------------------
+# Activate device services
+# ---------------------------------------------------------
+
+systemctl enable --now sema.service
+echo "✔ sema.service enabled and started"
+
+systemctl enable check-usb-ethernet.service
+echo "✔ USB Ethernet watchdog enabled"
+
+systemctl enable --now sema-update.timer
+echo "✔ sema-update.timer enabled"
 
 systemctl reload nginx || systemctl restart nginx
 echo "✔ nginx reloaded"
 
-echo ""
-echo "Done."
-echo "Recommended: reboot device"
+
+echo
+echo "Provisioning completed."
+echo
+echo "Recommended:"
 echo "sudo reboot"
