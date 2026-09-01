@@ -136,6 +136,11 @@ echo "✔ LAN_ACCESS=$LAN_ACCESS"
 hostnamectl set-hostname "$HOSTNAME_VALUE"
 echo "✔ Hostname=$HOSTNAME_VALUE"
 
+if grep -q '^127\.0\.1\.1' /etc/hosts; then
+    sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t$HOSTNAME_VALUE/" /etc/hosts
+else
+    echo -e "127.0.1.1\t$HOSTNAME_VALUE" >> /etc/hosts
+fi
 
 # ---------------------------------------------------------
 # Ensure permissions
