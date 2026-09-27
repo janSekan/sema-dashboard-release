@@ -1,3 +1,4 @@
+import hmac
 from fastapi import Request, HTTPException, status
 from data.config.config import PROXY_TOKEN, LAN_ACCESS
 
@@ -66,6 +67,28 @@ def require_trusted_access(request: Request):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Local access is disabled.",
+        )
+
+    return True
+
+def require_portal_sync(request: Request):
+    """
+    Prístup určený iba pre automatickú komunikáciu portálu
+    so SEMA zariadením.
+    """
+
+    token = request.headers.get("X-SEMA-Proxy-Token")
+
+    if not PROXY_TOKEN or not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid portal token.",
+        )
+
+    if not hmac.compare_digest(token, PROXY_TOKEN):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid portal token.",
         )
 
     return True

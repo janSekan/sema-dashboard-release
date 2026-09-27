@@ -1,16 +1,30 @@
 
 import os
-
+from datetime import datetime, timezone
+from data.config.config import DEVICE_ID
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from device_service import get_dashboard_data, get_control_data, fetch_status_xml
-from fastapi import FastAPI, Body, HTTPException, Depends, Request
-from db import init_db, log_temps, get_last_measurements, get_config, set_config, set_account, get_account
+from fastapi import FastAPI, Body, HTTPException, Depends, Request, Query
+from db import (
+    init_db, 
+    log_temps, 
+    get_last_measurements, 
+    get_measurements_after_id,
+    get_config, 
+    set_config, 
+    set_account, 
+    get_account
+    )
 from fastapi.middleware.cors import CORSMiddleware
 from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi, touch_wifi_setup_lock
 from services.device_info import get_device_info
-from core.proxy_auth import require_trusted_access, is_trusted_access
+from core.proxy_auth import (
+    require_trusted_access, 
+    is_trusted_access, 
+    require_portal_sync,
+    )
 from data.config.config import LAN_ACCESS
 
 from helpers import (
@@ -413,7 +427,7 @@ async def measurement_logger():
                 data["equitermTemp"],
                 data["eTemp"],
                 data["fTemp"],
-                data["fTemp"],
+                data["gTemp"],
                 data["progress"],
             )
         except Exception as e:
@@ -629,6 +643,39 @@ def update_account(
         "username": data.username,
     }
 
+@app.get(f"{API_BASE}/sync/measurements")
+def sync_measurements(
+    after_id: int = Query(default=0, ge=0),
+    limit: int = Query(default=500, ge=1, le=1000),
+    trusted=Depends(require_portal_sync),
+):
+    measurements = get_measurements_after_id(
+        after_id=after_id,
+        limit=limit,
+    )
+
+    last_id = (
+        measurements[-1]["id"]
+        if measurements
+        else after_id
+    )
+
+    return {
+        "measurements": measurements,
+        "count": len(measurements),
+        "last_id": last_id,
+    }
+
+@app.get(f"{API_BASE}/sync/status")
+def sync_status(
+    trusted=Depends(require_portal_sync),
+):
+    return {
+        "status": "online",
+        "device_id": DEVICE_ID,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "errors": [],
+    }
 
 
 if APP_ENV == "production":

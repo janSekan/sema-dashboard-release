@@ -5,12 +5,17 @@ DB_PATH = "data.db"
 
 
 def get_conn():
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=5)
+    conn.execute("PRAGMA busy_timeout = 5000")
+    return conn
 
 
 def init_db():
     conn = get_conn()
+
     cur = conn.cursor()
+
+    cur.execute("PRAGMA journal_mode = WAL")
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS measurements (
@@ -50,6 +55,9 @@ def init_db():
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+
+
     seed_default_accounts(cur)
     conn.commit()
     conn.close()
@@ -181,3 +189,42 @@ def get_last_measurements(limit=200):
     conn.close()
 
     return rows
+
+def get_measurements_after_id(after_id=0, limit=500):
+    after_id = max(0, int(after_id))
+    limit = min(max(1, int(limit)), 1000)
+
+    conn = get_conn()
+
+    try:
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT
+                id,
+                ts,
+                ot,
+                it,
+                wt,
+                ht,
+                ext,
+                eqt,
+                et,
+                ft,
+                gt,
+                pr
+            FROM measurements
+            WHERE id > ?
+            ORDER BY id ASC
+            LIMIT ?
+        """, (after_id, limit))
+
+        columns = [column[0] for column in cur.description]
+
+        return [
+            dict(zip(columns, row))
+            for row in cur.fetchall()
+        ]
+
+    finally:
+        conn.close()

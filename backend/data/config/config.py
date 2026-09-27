@@ -21,4 +21,6 @@ CONFIG = {
 
 PROXY_TOKEN = os.getenv("PROXY_TOKEN", "")
 
-LAN_ACCESS = os.getenv("LAN_ACCESS", "false").lower() == "true"
+LAN_ACCESS = os.getenv("LAN_ACCESS", "false").lower() == "true" 
+
+DEVICE_ID = os.getenv("DEVICE_ID","")
