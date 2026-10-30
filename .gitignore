@@ -3,7 +3,5 @@ __pycache__/
 *.pyo
 .env
 .venv/
-
 *.log
-
 data.db

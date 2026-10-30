@@ -1,0 +1,3 @@
+Steps to Enable Persistent LoggingCreate the systemd drop-in directory if it does not exist:sudo mkdir -p /etc/systemd/journald.conf.dCreate a new override configuration file using a text editor:sudo nano /etc/systemd/journald.conf.d/99-persistent-journal.confAdd the following lines to the file:ini[Journal]
+Storage=persistent
+Kód používajte opatrne.Save the file and reload the systemd manager configuration:sudo systemctl daemon-reloadRestart the journal service to apply the changes:sudo systemctl restart systemd-journaldReboot your Raspberry Pi to verify that logs now persist across reboots. You can check previous boot logs afterward by running journalctl -b -1

@@ -1,29 +1,15 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "=== Installing SEMA auto-update ==="
 
-echo "Updating update.sh..."
-cat > /home/jan/sema/scripts/update.sh <<'EOF'
-#!/bin/bash
-set -e
-
-cd /home/jan/sema
-
-echo "Fetching latest release..."
-git fetch origin
-
-echo "Resetting to origin/main..."
-git reset --hard origin/main
-
-echo "Restarting SEMA service..."
-sudo systemctl restart sema
-
-echo "Status:"
-sudo systemctl status sema --no-pager
-EOF
-
-chmod +x /home/jan/sema/scripts/update.sh
+# Use the distributed updater; do not overwrite it with a main-only copy.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ "$SCRIPT_DIR/update.sh" != /home/jan/sema/scripts/update.sh ]]; then
+    install -m 755 "$SCRIPT_DIR/update.sh" /home/jan/sema/scripts/update.sh
+else
+    chmod +x /home/jan/sema/scripts/update.sh
+fi
 
 echo "Creating sema-update.service..."
 sudo tee /etc/systemd/system/sema-update.service > /dev/null <<'EOF'
