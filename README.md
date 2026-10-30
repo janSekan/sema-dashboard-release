@@ -112,7 +112,7 @@ Z koreňa zdrojového projektu:
 
 Skripty zostavujú aktuálny obsah zdrojov vrátane necommitnutých zmien. Pred publikovaním skontroluj `git status` a `git diff`. Push zdrojového repozitára a push release sú odlišné operácie; jednotky aktualizujú z release repozitára.
 
-Lokálne nastavenie kanála je `/etc/sema/update-channel`, prípadne `/home/jan/.config/sema/update-channel`, ak systémový súbor neexistuje. Oba sú mimo Gitu. Bez neho nový updater používa `main`. Staré jednotky netreba ihneď upravovať. Príprava skriptov sama neznamená, že sema-001 už bola prepnutá alebo že vetva `testing` už bola publikovaná.
+Lokálne nastavenie kanála je `/etc/sema/update-channel`, prípadne `/home/jan/.config/sema/update-channel`, ak systémový súbor neexistuje. Oba sú mimo Gitu. Bez neho nový updater používa `main`. Staré jednotky netreba ihneď upravovať. Sema-001 bola 30. 10. 2026 prepnutá na `testing`; podrobnosti, release SHA a záloha sú v [zázname aktivácie](docs/SEMA_001_TESTING.md).
 
 ## Rýchla diagnostika Raspberry Pi
 
@@ -138,6 +138,7 @@ Na Raspberry Pi systemd používa virtuálne prostredie `/home/jan/sema/.venv`, 
 
 ## Ďalšia dokumentácia
 
+- [Stav sema-001](docs/SEMA_001_TESTING.md) – aktivovaný testing kanál, nainštalovaný commit a záloha.
 - [Release workflow](docs/RELEASE_WORKFLOW.md) – aktuálny postup testing → overenie → produkcia, zapnutie kanála a návrat na main.
 - [Deployment](docs/DEPLOYMENT.md) a [staršie poznámky DEPLO](docs/DEPLO.md) – historické prevádzkové a inštalačné postupy; release/update rieši aktuálny návod vyššie.
 - [Troubleshooting](docs/TROUBLESHOOTING.md), [first boot](docs/FIRST_BOOT.md), [tvorba image](docs/MAKE_IMAGE.md) a [persistent mode](docs/persistent%20mode.md).

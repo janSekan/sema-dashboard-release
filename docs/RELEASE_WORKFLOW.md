@@ -1,5 +1,7 @@
 # Testovací a produkčný kanál SEMA
 
+Aktivácia sema-001 bola dokončená 30. 10. 2026: [overený stav a záloha](SEMA_001_TESTING.md). Nižšie je všeobecný postup pre prípravu a ďalšie vydania.
+
 ## Princíp
 
 - `main` v release repozitári je produkcia pre všetky zákaznícke zariadenia.
@@ -19,7 +21,7 @@ Z koreňa zdrojového projektu `sema`:
 ./deploy_release.sh --testing "Opis testovacej verzie"
 ```
 
-Tento príkaz UŽ PUBLIKUJE na GitHub. V tejto lokálnej príprave nebol spustený proti skutočnému release remote.
+Tento príkaz UŽ PUBLIKUJE na GitHub. Prvý testing release už bol publikovaný; aktuálny stav je v zázname aktivácie vyššie.
 
 Skript načíta adresu `origin` zo susedného `sema-release`, pripraví izolovaný dočasný klon, vytvorí alebo nadviaže na `testing`, zostaví frontend a commitne/pushne iba `testing`. Existujúci checkout `sema-release` nemení. Vytlačí úplný release commit SHA, ktorý si treba zaznamenať. Ak sa obsah nezmenil, nový release nevytvorí.
 
@@ -29,7 +31,7 @@ Pôvodné `./deploy_release.sh` bez parametrov už nič nepublikuje. `make_relea
 
 ## Jednorazové prepnutie IBA sema-001
 
-Najprv publikovať prvú vetvu `testing`, ktorá už obsahuje nový `scripts/update.sh`. Pred zmenou overiť identitu jednotky sema-001 a dostupnosť SSH. Nasledujúce kroky meniace zariadenie v tejto úlohe neboli vykonané.
+Najprv publikovať prvú vetvu `testing`, ktorá už obsahuje nový `scripts/update.sh`. Pred zmenou overiť identitu jednotky sema-001 a dostupnosť SSH. Na sema-001 už boli vykonané podľa záznamu aktivácie; ide o všeobecný návod, nie príkazy na opätovné spustenie bez kontroly stavu.
 
 Na jednotke najprv overiť skutočné spúšťanie aktualizácií:
 
