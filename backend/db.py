@@ -7,6 +7,7 @@ DB_PATH = "data.db"
 def get_conn():
     conn = sqlite3.connect(DB_PATH, timeout=5)
     conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA synchronous = FULL")
     return conn
 
 
@@ -57,6 +58,19 @@ def init_db():
     """)
 
 
+
+    # Additive telemetry migration; preserve existing measurements/accounts.
+    columns = {row[1] for row in cur.execute("PRAGMA table_info(measurements)")}
+    for name in ("state_json", "raw_json"):
+        if name not in columns:
+            cur.execute(f"ALTER TABLE measurements ADD COLUMN {name} TEXT")
+    cur.execute("""CREATE TABLE IF NOT EXISTS telemetry_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, level TEXT NOT NULL,
+        code TEXT NOT NULL, message TEXT NOT NULL, details TEXT NOT NULL
+    )""")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_events_ts ON telemetry_events(ts)")
+    import uuid
+    cur.execute("INSERT OR IGNORE INTO app_settings(key,value) VALUES ('telemetry_source_id',?)", (str(uuid.uuid4()),))
 
     seed_default_accounts(cur)
     conn.commit()
@@ -212,7 +226,7 @@ def get_measurements_after_id(after_id=0, limit=500):
                 et,
                 ft,
                 gt,
-                pr
+                pr, state_json, raw_json
             FROM measurements
             WHERE id > ?
             ORDER BY id ASC

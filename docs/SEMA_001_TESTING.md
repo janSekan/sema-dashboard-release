@@ -5,8 +5,9 @@ Overené 30. 10. 2026 cez SSH, používateľ `jan`, Tailscale IP `100.89.145.76`
 ## Aktuálny stav
 
 - Release GitHub repozitár: `janSekan/sema-dashboard-release`.
-- Produkčný `main` zostal na `4d9078e5d861f9718748741834b93a234cf4bfb2`.
-- Prvý publikovaný `testing` a nainštalovaný release: `fbc772a55dec58531a46a3a78bc8b4d335e1cc43`.
+- Produkčný `main` bol 31. 10. 2026 povýšený na presne otestovaný `7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb` (predtým `4d9078e5d861f9718748741834b93a234cf4bfb2`). Sema-001 naďalej zostáva na kanáli `testing`.
+- Prvý publikovaný `testing`: `fbc772a55dec58531a46a3a78bc8b4d335e1cc43`.
+- Aktuálne nainštalovaný `testing`: `7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb` – tlačidlo **Portal** v menu iba pre admina/superadmina. Lokálny portál dodáva návratovú URL `http://localhost:5173/devices`; bez meta konfigurácie sa používa `https://portal.semaeco.sk/devices`. Zachované upozornenie na neuložené zmeny.
 - Kanál je v `/home/jan/.config/sema/update-channel`, obsah `testing`.
 - `/etc/sema/update-channel` neexistuje. Ak sa neskôr vytvorí, má prednosť.
 - `sema` a `sema-update.timer` sú aktívne. Aktualizačná služba po spustení skončila `Result=success`, `ExecMainStatus=0`.
@@ -72,3 +73,7 @@ sudo systemctl start sema-update.service
 ```
 
 Ide o návrat kódu; databázu ani nastavenia tým neobnovuješ. Po nainštalovaní dnešnej starej produkčnej verzie sa môže obnoviť aj starý main-only updater. Pred ďalším prepnutím na testing preto znovu nainštalovať nový updater podľa [návodu](RELEASE_WORKFLOW.md).
+
+## Povýšenie do produkcie 31. 10. 2026
+
+Spustený `promote_release.sh --production 7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb`. GitHub `main` aj `testing` boli overené na rovnakom SHA; nevytváral sa nový build. Pred povýšením bolo cez SSH potvrdené, že sema-001 beží práve na tomto commite a služba je aktívna. Zákaznícke jednotky neboli manuálne aktualizované ani reštartované; získajú release svojím existujúcim najbližším updatom. Vypnuté jednotky až po zapnutí a úspešnom update.

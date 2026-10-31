@@ -141,3 +141,10 @@ python3 -m unittest discover -s tests -v
 ```
 
 Testy používajú výhradne dočasné lokálne bare Git repozitáre. Npm build a systemd sú nahradené testovacími príkazmi; Git fetch/push/reset a rsync sa vykonávajú reálne iba v dočasných repozitároch. Pokrývajú oddelenie vetiev, presné povýšenie staršieho otestovaného commitu, vylúčenie tajomstiev a DB, ochranu čistého checkoutu, odmietnutie rozídenej produkcie, kompatibilitu starého updatera, oba kanály nového updatera aj chybové stavy. Nedotýkajú sa GitHubu, skutočného release checkoutu ani živých zariadení.
+
+## Kontrola oprávnení updatera
+
+Diagnostika chýb `Permission denied` v Git a rozdiel medzi sudo právami a vlastníctvom
+sú popísané v [Automatické aktualizácie: vlastníctvo Git a sudo](UPDATE_OWNERSHIP.md).
+Nový updater ponúka `--check` bez stiahnutia/reštartu; na starom updateri tento parameter
+nepoužívať. Git nespúšťať cez `sudo git ...`.

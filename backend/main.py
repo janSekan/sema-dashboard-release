@@ -1,3 +1,5 @@
+from telemetry import collector, source_id, export_events
+from contextlib import suppress
 
 import os
 from datetime import datetime, timezone
@@ -119,9 +121,13 @@ class WifiConnectRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    task = asyncio.create_task(measurement_logger())
-    yield
-    task.cancel()
+    task = asyncio.create_task(collector.run())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 app = FastAPI(lifespan=lifespan)
 
@@ -273,7 +279,7 @@ def get_history(limit: int = 20, trusted=Depends(require_trusted_access),):
         exchanger.append(r[5])
         equiterm.append(r[6])
         e.append(r[7])
-        f.append(r[9])
+        f.append(r[8])
         g.append(r[9])
         progress.append(r[10])
 
@@ -412,28 +418,6 @@ def get_my_account(current_user=Depends(get_current_user),trusted=Depends(requir
 
 
 
-
-async def measurement_logger():
-    while True:
-        try:
-            data = get_dashboard_data()
-
-            log_temps(
-                data["outdoorTemp"],
-                data["indoorTemp"],
-                data["waterTemp"],
-                data["heatTemp"],
-                data["exchangerTemp"],
-                data["equitermTemp"],
-                data["eTemp"],
-                data["fTemp"],
-                data["gTemp"],
-                data["progress"],
-            )
-        except Exception as e:
-            print("Logging error:", e)
-
-        await asyncio.sleep(300)  # 5 min
 
 
 def build_parameters_payload(current_form: dict, data):
@@ -661,10 +645,30 @@ def sync_measurements(
     )
 
     return {
+        "device_id": DEVICE_ID,
+        "source_db_id": source_id(),
         "measurements": measurements,
         "count": len(measurements),
         "last_id": last_id,
     }
+
+@app.get(f"{API_BASE}/sync/metadata")
+def sync_metadata(trusted=Depends(require_portal_sync)):
+    return {"device_id": DEVICE_ID, "source_db_id": source_id(), "version": 2}
+
+
+@app.get(f"{API_BASE}/sync/events")
+def sync_events(after_id: int = Query(0, ge=0), limit: int = Query(500, ge=1, le=1000), trusted=Depends(require_portal_sync)):
+    events = export_events(after_id, limit)
+    return {"device_id": DEVICE_ID, "source_db_id": source_id(), "events": events,
+            "last_id": events[-1]['id'] if events else after_id}
+
+
+@app.post(f"{API_BASE}/sync/flush")
+async def sync_flush(trusted=Depends(require_portal_sync)):
+    await collector.flush(include_latest=True)
+    return {"ok": True, "device_id": DEVICE_ID}
+
 
 @app.get(f"{API_BASE}/sync/status")
 def sync_status(
@@ -674,7 +678,10 @@ def sync_status(
         "status": "online",
         "device_id": DEVICE_ID,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "errors": [],
+        "errors": ([{"code": "general_fault", "message": "Čerpadlo hlási všeobecnú chybu."}]
+                   if collector.previous.get('fault') else []),
+        "pump_available": collector.previous.get('available.status'),
+        "observed_at": collector.last_observed['ts'] if collector.last_observed else None,
     }
 
 

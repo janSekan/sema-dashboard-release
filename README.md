@@ -116,6 +116,8 @@ Lokálne nastavenie kanála je `/etc/sema/update-channel`, prípadne `/home/jan/
 
 ## Rýchla diagnostika Raspberry Pi
 
+**Pri montáži ďalšieho zariadenia:** [kontrola a oprava vlastníctva cez SSH](docs/UPDATE_OWNERSHIP.md#rýchla-kontrola-cez-ssh-pri-ďalšej-montáži). Obsahuje príkaz na kontrolu aj jednorazové `sudo chown`.
+
 Nasledujúce kontroly sú určené pre SSH na konkrétnu jednotku:
 
 ```bash
@@ -145,3 +147,5 @@ Na Raspberry Pi systemd používa virtuálne prostredie `/home/jan/sema/.venv`, 
 - Portál: `/home/jan/Projects/sema-portal/README.md`; technický kontext v jeho `codex/SEMA_CODEX_CONTEXT.md`, pumpová proxy v `codex/PUMP_PROXY_LOCAL.md`.
 
 `.env`, databázy, tokeny, heslá a virtuálne prostredia nepatria do Gitu. Pred zmenami na živom zariadení over jeho identitu a pred zásahom do dát urob zálohu. Testovací kanál oddeľuje distribúciu kódu; na sema-001 stále ovládaš svoje reálne čerpadlo.
+
+- [Zber histórie, microSD a synchronizácia do portálu](docs/TELEMETRY.md).
