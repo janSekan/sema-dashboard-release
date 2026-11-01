@@ -6,3 +6,5 @@ PyJWT==2.12.1
 pwdlib==0.3.0
 argon2-cffi==25.1.0
 python-dotenv==1.2.2
+zeroconf==0.151.1
+ifaddr==0.2.0

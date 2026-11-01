@@ -7,7 +7,7 @@ Overené 30. 10. 2026 cez SSH, používateľ `jan`, Tailscale IP `100.89.145.76`
 - Release GitHub repozitár: `janSekan/sema-dashboard-release`.
 - Produkčný `main` bol 31. 10. 2026 povýšený na presne otestovaný `7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb` (predtým `4d9078e5d861f9718748741834b93a234cf4bfb2`). Sema-001 naďalej zostáva na kanáli `testing`.
 - Prvý publikovaný `testing`: `fbc772a55dec58531a46a3a78bc8b4d335e1cc43`.
-- Aktuálne nainštalovaný `testing`: `7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb` – tlačidlo **Portal** v menu iba pre admina/superadmina. Lokálny portál dodáva návratovú URL `http://localhost:5173/devices`; bez meta konfigurácie sa používa `https://portal.semaeco.sk/devices`. Zachované upozornenie na neuložené zmeny.
+- Aktuálne nainštalovaný `testing`: `154197900c3d1b75b56a94e939bd9f4ba6601e58`, verzia dashboardu **1.2.0-testing.1**. Obsahuje piatu teplotnú kartu, rozloženie šiestich kariet, dávkový zber stavov/porúch a nový synchronizačný protokol. Predchádzajúci release bol `7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb`.
 - Kanál je v `/home/jan/.config/sema/update-channel`, obsah `testing`.
 - `/etc/sema/update-channel` neexistuje. Ak sa neskôr vytvorí, má prednosť.
 - `sema` a `sema-update.timer` sú aktívne. Aktualizačná služba po spustení skončila `Result=success`, `ExecMainStatus=0`.
@@ -77,3 +77,20 @@ Ide o návrat kódu; databázu ani nastavenia tým neobnovuješ. Po nainštalova
 ## Povýšenie do produkcie 31. 10. 2026
 
 Spustený `promote_release.sh --production 7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb`. GitHub `main` aj `testing` boli overené na rovnakom SHA; nevytváral sa nový build. Pred povýšením bolo cez SSH potvrdené, že sema-001 beží práve na tomto commite a služba je aktívna. Zákaznícke jednotky neboli manuálne aktualizované ani reštartované; získajú release svojím existujúcim najbližším updatom. Vypnuté jednotky až po zapnutí a úspešnom update.
+
+
+## Testing nasadenie telemetrie – 31. 10. 2026
+
+- Publikovaný iba testing release `154197900c3d1b75b56a94e939bd9f4ba6601e58`. GitHub main zostal `7d7b82a641ba9acba7a021bac1ba1afcb04fa4eb`.
+- Pred update vznikla súkromná konzistentná záloha `/home/jan/sema-backups/before-telemetry-testing-20261031-181110`, vrátane 38 554 meraní, existujúcich env súborov, updatera a `backend/auth.py.bak`. Citlivé hodnoty neboli vypisované.
+- Existujúca root-run aktualizačná služba použila prepnutie na jan, úspešne stiahla testing a reštartovala dashboard: `Result=success`, `ExecMainStatus=0`. Nové požiadavky Python závislostí nepribudli.
+- Po update overené: presný SHA/verzia, aktívna aplikácia a timer, SQLite integrity_check, nové JSON stĺpce a tabuľka udalostí, zachovanie env a auth.py.bak podľa kontrolných súčtov. Počet meraní bol 38 555; začal už nový zber.
+- Lokálny portál mal chybu pri ručnom stiahnutí: SQLite Row z autentifikácie nemá metódu `.get()`. Opravené na indexovanie `user['id']`, doplnený regresný test so skutočnou session/databázovým typom a reštartovaný iba lokálny portál.
+- Skutočný POST cez lokálny portál na sema-001 vrátil 202. Prvý workerový beh úspešne preniesol 5 000 meraní a jednu udalosť; zvyšok starej histórie pokračuje po dávkach, s minimálnym odstupom 60 s. Nový protokol aj import boli teda overené na vlastnom sema-001, nielen na fixture.
+- Do čerpadla sa neposielali riadiace POST príkazy. Interný sync/flush ukladá iba telemetrický buffer. Zákaznícke jednotky, produkčný portál a main release vetva sa nemenili.
+
+Poznámka: balenie release teraz explicitne vylučuje aj `*.db-wal`, `*.db-shm` a `*.db-journal`, nielen samotnú DB. Overené integračným testom, aby lokálny SQLite WAL neunikol do publikovaného balíka.
+
+## Povýšenie telemetrie do produkcie – 31. 10. 2026
+
+Na výslovný pokyn používateľa bol presný overený release `154197900c3d1b75b56a94e939bd9f4ba6601e58` povýšený cez `promote_release.sh --production` do release/main. Pred povýšením SSH potvrdilo tento SHA na sema-001, aktívnu službu, NRestarts=0 a HTTP 200 dashboardu. Znovu prešlo 16 release/telemetrických testov a frontend build (existujúce upozornenie CSS na @property). Nerobil sa nový release build ani ručný update zákazníckych zariadení. Dostanú ho pri vlastnom bežnom update, vypnuté až po zapnutí. Sema-001 ostáva na testing; main aj testing teraz ukazujú na 1541979. Zdrojový main bol zosúladený s development na b4dcf15; neskoršie commity dopĺňajú dokumentáciu. Produkčný portál sa nasadzuje osobitne.

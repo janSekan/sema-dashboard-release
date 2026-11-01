@@ -1,4 +1,6 @@
 from telemetry import collector, source_id, export_events
+from ha_api import router as ha_router, store as ha_store
+from ha_discovery import HADiscovery
 from contextlib import suppress
 
 import os
@@ -6,7 +8,7 @@ from datetime import datetime, timezone
 from data.config.config import DEVICE_ID
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from device_service import get_dashboard_data, get_control_data, fetch_status_xml
 from fastapi import FastAPI, Body, HTTPException, Depends, Request, Query
 from db import (
@@ -121,15 +123,36 @@ class WifiConnectRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    await asyncio.to_thread(ha_store.update)
+    app.state.ha_discovery = HADiscovery(ha_store)
+    discovery_task = asyncio.create_task(app.state.ha_discovery.run())
     task = asyncio.create_task(collector.run())
     try:
         yield
     finally:
         task.cancel()
-        with suppress(asyncio.CancelledError):
-            await task
+        discovery_task.cancel()
+        try:
+            with suppress(asyncio.CancelledError):
+                await discovery_task
+        finally:
+            with suppress(asyncio.CancelledError):
+                await task
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(ha_router)
+
+
+@app.middleware('http')
+async def restrict_ha_credentials(request: Request, call_next):
+    # Existing LAN endpoints may intentionally allow anonymous trusted access.
+    # A dedicated HA credential must never be used for those or provisioning.
+    scheme, _, credential = request.headers.get('Authorization', '').partition(' ')
+    if (scheme.lower() == 'bearer' and credential.startswith('sema_ha_')
+            and request.url.path not in ('/device-api/v1/info', '/device-api/v1/state')):
+        return JSONResponse({'detail': 'HA token permits read-only v1 API only'},
+                            status_code=403, headers={'Cache-Control': 'no-store'})
+    return await call_next(request)
 
 
 def build_setback_parameters_payload(current_form: dict, data: SetbackUpdate):

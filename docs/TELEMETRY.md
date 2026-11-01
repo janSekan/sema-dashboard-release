@@ -1,6 +1,6 @@
 # Zber histórie a sťahovanie zo zariadení
 
-Stav: pripravené a overené lokálne. Nejde o produkčné nasadenie ani hotové interaktívne grafy.
+Stav po nasadení 31. 10. 2026: portálový runtime `409749f` je v produkcii so schémou 7. Dashboard release/main aj testing sú `1541979` (1.2.0-testing.1), overený na sema-001. Ostatné jednotky získajú release pri svojom automatickom update. Interaktívne grafy a retencia ostávajú ďalšou etapou.
 
 ## Predvolené frekvencie
 
@@ -101,7 +101,7 @@ Lokálne zálohy pred prídavnými migráciami, s právami 600:
 
 Overené zachovanie pôvodných riadkov, opakované migrácie a `foreign_key_check`. Pred produkciou vytvoriť novú trvalú zálohu aktuálnych DB; tieto /tmp sú iba lokálne.
 
-Zariadenia ani produkčný portál sa v tomto kroku neaktualizovali. Nové stavy sa začnú zbierať až po vydaní/nasadení nového dashboardu; staršie udalosti spätne nevzniknú. Najprv overiť release na sema-001, potom publikovať produkciu podľa existujúceho kanálového workflow.
+Aktualizované bolo iba testovacie sema-001; produkčný portál a zákaznícke jednotky sa neaktualizovali. Nové stavy sa začnú zbierať až po vydaní/nasadení nového dashboardu; staršie udalosti spätne nevzniknú. Najprv overiť release na sema-001, potom publikovať produkciu podľa existujúceho kanálového workflow.
 
 
 ## Záverečné testy
@@ -109,3 +109,13 @@ Zariadenia ani produkčný portál sa v tomto kroku neaktualizovali. Nové stavy
 Overené: 49 existujúcich + 11 portálových telemetrických testov, 8 release + 8 zariadenových telemetrických testov; spolu 76. Frontend build oboch projektov a ESLint upravených komponentov prešli. Pri dashboard builde zostáva pôvodné upozornenie optimalizátora CSS na `@property --radialprogress`.
 
 Koncová kontrola použila reálne nové dashboard API, lokálne HTTP a samostatnú portálovú DB: tokenové oprávnenie, merania/udalosti, generáciu zdroja, flush, opakovaný prenos bez duplicít a audit dávok. Prehliadačová kontrola overila nový tab História, zaradenie ručnej požiadavky a následné zobrazenie výsledku/počtov na mobilnej šírke. Produkčné jednotky sa pri týchto testoch nepoužili.
+
+
+### Oprava ručného stiahnutia
+
+Pri reálnej session vracia autentifikácia `sqlite3.Row`, nie dict. Endpoint používa
+`user['id']`; predchádzajúce `.get('id')` spôsobovalo HTTP 500 ešte pred zaradením
+požiadavky. Regresný test používa reálnu session cookie a databázový riadok.
+Skutočné stiahnutie sema-001 cez lokálny portál potom vrátilo 202 a prvá dávka
+uložila 5 000 meraní a jednu udalosť. Počas prvého historického importu sa ďalšie
+dávky radia automaticky, preto môže tlačidlo zobraziť čakanie až do dobehnutia zásoby.

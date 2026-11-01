@@ -1,5 +1,7 @@
 # SEMA Dashboard – rýchly návrat k vývoju
 
+**Spoločný vývoj:** [pokyny pre Codex](AGENTS.md), [synchronizácia VS Code ↔ Cloud](docs/DEVELOPMENT_WORKFLOW.md), [aktuálny stav a ďalšie kroky](docs/PROJECT_STATUS.md). Vývojová vetva: `development`.
+
 Toto je hlavný rozcestník pre vývoj dashboardu a aktualizácie zariadení. Príkazy nižšie sú určené pre lokálny vývojový počítač, ak nie je uvedené Raspberry Pi.
 
 ## Ktorý projekt je ktorý
