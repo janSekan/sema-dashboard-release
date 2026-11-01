@@ -94,3 +94,17 @@ Poznámka: balenie release teraz explicitne vylučuje aj `*.db-wal`, `*.db-shm` 
 ## Povýšenie telemetrie do produkcie – 31. 10. 2026
 
 Na výslovný pokyn používateľa bol presný overený release `154197900c3d1b75b56a94e939bd9f4ba6601e58` povýšený cez `promote_release.sh --production` do release/main. Pred povýšením SSH potvrdilo tento SHA na sema-001, aktívnu službu, NRestarts=0 a HTTP 200 dashboardu. Znovu prešlo 16 release/telemetrických testov a frontend build (existujúce upozornenie CSS na @property). Nerobil sa nový release build ani ručný update zákazníckych zariadení. Dostanú ho pri vlastnom bežnom update, vypnuté až po zapnutí. Sema-001 ostáva na testing; main aj testing teraz ukazujú na 1541979. Zdrojový main bol zosúladený s development na b4dcf15; neskoršie commity dopĺňajú dokumentáciu. Produkčný portál sa nasadzuje osobitne.
+
+## Testing nasadenie Home Assistant API – 1. 11. 2026
+
+- Výslovne autorizované používateľom iba pre sema-001; hostname aj DEVICE_ID overené pred zásahom. Kanál testing zachovaný.
+- Dashboard **1.3.0-testing.1**, release **e3b749744888df28a65d918f09c6bf8d872220c0**, publikovaný cez deploy_release.sh --testing a nainštalovaný existujúcou sema-update.service. Result=success, ExecMainStatus=0; živý HEAD sa zhoduje.
+- Distribučný main zostal **154197900c3d1b75b56a94e939bd9f4ba6601e58**. Žiadna aktualizácia ostatných zariadení, portálu alebo používateľovho HA.
+- Súkromná záloha: `/home/jan/sema-backups/before-ha-testing-20261101-133037`. SQLite backup API, integrity_check=ok, 38 817 meraní a 311 udalostí; zálohované env, auth.py.bak, predchádzajúce requirements/verzie/updater a inventár balíkov. Žiadne tajomstvá neboli vypisované.
+- Pred aktualizáciou osobitne nainštalované zeroconf 0.151.1 a ifaddr 0.2.0 do /home/jan/sema/.venv (Python 3.13.5/aarch64). pip check bez problémov. Updater závislosti neinštaluje automaticky.
+- Zdrojové kontroly: 32 testov cez backend/.venv/bin/python, frontend build, shell syntax release skriptov. Systémový python3 bez projektových závislostí nie je testovacie prostredie. Existujúce CSS upozornenie DaisyUI na @property zostáva.
+- Živé info/state cez nginx: správna verzia API/firmvéru a spoločné UID, snapshot s explicitným UTC, dostupné čerpadlo. Bez tokenu 401 na nginx aj backend porte, neplatný token 401; HA token na správu/konfiguráciu/provisioning/sync dostane 403.
+- mDNS `_sema._tcp.local.` overené na wlan0 (192.168.0.86:80): iba verejné device_uid/api_version/scheme a dosiahnuteľná LAN adresa. Po odvolaní tokenu oznam zmizol. Ide o overenie na LAN rozhraní zariadenia, nie discovery z HA/OMV.
+- Testovací token zostal iba v pamäti kontrolného procesu, po teste odvolaný. API je vypnuté do vytvorenia vlastného tokenu v Informáciách o zariadení → Home Assistant. UID súbor zostal 0600, bez aktívneho token hash. Tokeny ani UID sa nepridávajú do Gitu.
+- Po reštarte integrity_check=ok, env a auth.py.bak zhodné so zálohou, účty aj app_settings zhodné podľa súkromných kontrolných súčtov. Služby sema/nginx aktívne, NRestarts=0, pôvodný sema-update.timer obnovený. Existujúci LAN_ACCESS sa nemenil. Do čerpadla sa neposielali riadiace príkazy.
+- Zostáva integračný test párovania a entít v HA Container/Core 2026.9.4 na OMV/RPi5. Živé browserové tlačidlo kopírovania na zariadení zatiaľ netestované (lokálny browser test s mock API prešiel).

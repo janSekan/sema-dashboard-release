@@ -125,6 +125,8 @@ async def lifespan(app: FastAPI):
     init_db()
     await asyncio.to_thread(ha_store.update)
     app.state.ha_discovery = HADiscovery(ha_store)
+    from ha_api import configuration_collector
+    configuration_task = asyncio.create_task(configuration_collector.run())
     discovery_task = asyncio.create_task(app.state.ha_discovery.run())
     task = asyncio.create_task(collector.run())
     try:
@@ -132,12 +134,17 @@ async def lifespan(app: FastAPI):
     finally:
         task.cancel()
         discovery_task.cancel()
+        configuration_task.cancel()
         try:
             with suppress(asyncio.CancelledError):
                 await discovery_task
         finally:
-            with suppress(asyncio.CancelledError):
-                await task
+            try:
+                with suppress(asyncio.CancelledError):
+                    await configuration_task
+            finally:
+                with suppress(asyncio.CancelledError):
+                    await task
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(ha_router)

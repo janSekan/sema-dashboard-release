@@ -1,11 +1,38 @@
 # Lokálne read-only API pre Home Assistant
 
-Stav 1. 11. 2026: implementované a lokálne testované v zdrojoch, **nenasadené**.
+Stav 1. 11. 2026: nasadené iba na **sema-001/testing**, dashboard 1.3.0-testing.1,
+release e3b749744888df28a65d918f09c6bf8d872220c0. Živé API a mDNS na wlan0 overené;
+produkčný main ani ostatné zariadenia sa nemenili. Podrobnosti v SEMA_001_TESTING.md.
 Read-only HA prototyp v samostatnom projekte sema-home-assistant má klienta,
 formulár, koordinátor a entity, zatiaľ je overený iba proti mock dátam.
 Prvý cieľ HA: Container/Core 2026.9.4. Nevytvárať produkčný release bez testing kroku.
 
 ## Zapnutie a identita
+
+### Pripravená revízia 2 (zatiaľ nenasadená)
+
+Zdroje rozširujú stále API v1, v info je api_revision=2. Nové capabilities:
+states.power_on/setback/high_tariff, modes.operating_mode/season/activity/
+heat_source/dhw_mode a configuration.*. Pôvodné polia/UID/token ostávajú.
+Režimy sa dekódujú z už existujúceho spoločného status/control snapshotu;
+neznámy kód je null, chýbajúce control.xml nesmie vymyslieť vypnuté/zima/kúrenie.
+
+Nový ha_configuration.py zbiera parametre na pozadí raz za 300 s, iba pri
+aktívnom read tokene. Jeden parameters.htm pre všetkých 20 čísel (vrátane
+referenčnej teploty z DB bez predvolenej 20), jeden timer.htm pre rozpis.
+Cache je len v RAM, má available/observed_at/max_age_seconds=900/values/schedule.
+Zlyhanie parametrov maskuje hodnoty; zlyhanie harmonogramu ponechá ostatné.
+Harmonogram vyžaduje kompletné platné páry všetkých 56 timer polí: chýbajúci
+formulár sa nesmie prezentovať ako prázdny plán. API GET nič nečíta z pumpy
+ani DB a žiadna z nových entít nič neovláda. Zber má samostatný lifecycle,
+neblokuje pôvodné rýchle pozorovanie a nevykonáva DB zápisy.
+
+Zdroj HA projektu opisuje celý kontrakt v docs/API_EXTENSIONS.md, má ilustračné
+info_extended/state_extended fixtures a rozšírený používateľský návod.
+Pri plných capabilities 49 entít (31 nových), 25 predvolene zapnutých;
+ostatné servisné hodnoty/krivka/plán sú voliteľné. Aktualizovať treba obe strany
+a znovu načítať HA integráciu, aby sa nové capabilities načítali z info.
+Nasadený testing e3b7497 túto revíziu zatiaľ neobsahuje. Ovládanie je samostatná etapa.
 
 Administrátor/superadmin otvorí Informácie o zariadení → Home Assistant.
 Vytvorenie tokenu zároveň zapne API; nový token okamžite odvolá starý.

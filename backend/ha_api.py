@@ -17,14 +17,23 @@ from auth import require_admin
 from data.config.config import DEVICE_ID
 from services.device_info import get_versions
 from telemetry import collector, utc_now
+from ha_configuration import ConfigurationCollector, KEYS as CONFIG_KEYS
 
 TEMPERATURES = dict(outdoor_temp='ot', indoor_temp='it', water_temp='wt',
                     heat_temp='ht', equitherm_temp='eqt', exchanger_temp='ext',
                     e_temp='et', f_temp='ft', g_temp='gt')
 STATUS_TEMPS = {'ot', 'it', 'wt', 'ht'}
-STATES = ('heating', 'dhw', 'defrost', 'fault')
+STATES = ('heating', 'dhw', 'defrost', 'fault', 'power_on', 'setback', 'high_tariff')
+MODES = {
+    'operating_mode': ('control.st2', {'1': 'heating', '2': 'cooling'}),
+    'season': ('control.st3', {'1': 'summer', '2': 'winter'}),
+    'activity': ('status.st1', {'1': 'heating', '2': 'cooling', '3': 'off', '4': 'defrost', '5': 'fault'}),
+    'heat_source': ('status.st2', {'1': 'compressor', '2': 'bivalent_1', '3': 'bivalent_2', '4': 'summer'}),
+    'dhw_mode': ('status.st3', {'0': 'standby', '1': 'heating', '2': 'electric_heating'}),
+}
 CAPABILITIES = [*(f'temperatures.{k}' for k in TEMPERATURES), 'power_percent',
-                *(f'states.{k}' for k in STATES)]
+                *(f'states.{k}' for k in STATES), *(f'modes.{k}' for k in MODES),
+                *(f'configuration.{k}' for k in CONFIG_KEYS), 'configuration.schedule']
 
 
 class HAStore:
@@ -64,6 +73,7 @@ class HAStore:
 
 
 store = HAStore()
+configuration_collector = ConfigurationCollector(store)
 router = APIRouter(prefix='/device-api')
 
 
@@ -113,7 +123,7 @@ async def revoke_token(request: Request, response: Response):
 
 @router.get('/v1/info')
 def info(identity=Depends(require_ha)):
-    return {'api_version': 1, 'device_uid': identity['device_uid'],
+    return {'api_version': 1, 'api_revision': 2, 'device_uid': identity['device_uid'],
             'device_id': DEVICE_ID, 'name': f'SEMA {DEVICE_ID or ""}'.strip(),
             'manufacturer': 'SEMA', 'model': 'SEMA',
             'firmware_version': get_versions().get('dashboard'),
@@ -135,11 +145,19 @@ def state_payload(snapshot, uid):
         source = 'status' if column in STATUS_TEMPS else 'temperatures'
         temps[name] = finite(values.get(column)) if available is True and state.get(f'available.{source}') is True else None
     flags = {name: state.get(name) if available is True and type(state.get(name)) is bool else None for name in STATES}
+    control_ok = available is True and state.get('available.control') is True
+    power = state.get('control.st1') if control_ok else None
+    flags['power_on'] = {'1': True, '2': False}.get(power)
+    modes = {key: mapping.get(state.get(field))
+             if available is True and (not field.startswith('control.') or control_ok) else None
+             for key, (field, mapping) in MODES.items()}
     return {'api_version': 1, 'device_uid': uid, 'generated_at': utc_now(),
             'observed_at': snapshot['ts'] if snapshot else None,
             'pump_available': available, 'temperatures': temps,
             'power_percent': finite(values.get('pr')) if available is True else None,
-            'states': flags, 'errors': [{'code': 'general_fault', 'message': 'Čerpadlo hlási všeobecnú chybu.'}] if flags['fault'] is True else []}
+            'states': flags, 'modes': modes,
+            'configuration': copy.deepcopy(configuration_collector.snapshot),
+            'errors': [{'code': 'general_fault', 'message': 'Čerpadlo hlási všeobecnú chybu.'}] if flags['fault'] is True else []}
 
 
 @router.get('/v1/state')
