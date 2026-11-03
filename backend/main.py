@@ -147,6 +147,8 @@ async def lifespan(app: FastAPI):
                     await task
 
 app = FastAPI(lifespan=lifespan)
+from maintenance import router as maintenance_router
+app.include_router(maintenance_router)
 app.include_router(ha_router)
 
 
