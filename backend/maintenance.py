@@ -128,7 +128,13 @@ def dispatch(job_id):
         }
         try:
             result = execute('/usr/bin/sudo', '-n', '/usr/bin/systemctl', *commands[job['action']])
-            if result.returncode:
+            if result.returncode < 0:
+                # systemd stops the entire service cgroup, including our sudo /
+                # systemctl child. SIGTERM is expected during a self-restart and
+                # does not prove rejection. Keep running until identity confirms it.
+                logger.info('Maintenance %s: command interrupted by signal %s; awaiting confirmation',
+                            job_id, -result.returncode)
+            elif result.returncode > 0:
                 logger.warning('Maintenance %s: systemctl rejected request (exit %s)', job_id, result.returncode)
                 conn.execute("UPDATE jobs SET status='failed' WHERE id=?", (job_id,))
                 conn.commit()
