@@ -1,5 +1,18 @@
 # Stav a odovzdanie práce – SEMA Dashboard
 
+## Koeficient posunu krivky – 8. 11. 2026
+
+Pripravený testing 1.3.0-testing.6: admin/superadmin nastavuje koeficient 1,0 po 0,1;
+backend ním násobí zmeny teploty všetkých používateľov. Uchováva sa zlomkový posun
+kvôli kroku čerpadla 0,5 °C. Uloženie koeficientu nemení krivku ani referenčnú teplotu.
+Detaily a testy: [HEATING_COEFFICIENT.md](HEATING_COEFFICIENT.md).
+
+Práca je izolovaná vo vetve feature/heating-coefficient, aby zostali pôvodné
+rozpracované HA a hardvérové zmeny nedotknuté. Východisko bolo zosúladené s už
+publikovaným release a4c9031: backend aj frontendový build sa pred zmenou zhodovali
+bajt po bajte. Zdrojový development sa na pokyn používateľa zatiaľ nepushuje.
+Distribučný main a iné jednotky sa pri tomto testing vydaní nemenia.
+
 Aktualizované 31. 10. 2026 pri zavedení spoločnej zdrojovej vetvy development. Aktuálny commit over cez git log; stav zariadenia over zvlášť cez SSH.
 
 ## Implementované
@@ -19,39 +32,26 @@ Aktualizované 31. 10. 2026 pri zavedení spoločnej zdrojovej vetvy development
 
 ## Ďalší smer
 
-1. 11. 2026, následné rozšírenie: v zdrojoch pripravené read-only API v1/revízia 2
-pre ďalších 31 HA entít (stavy/režimy, 20 nastavení, harmonogram a jeho diagnostika).
-Nový ha_configuration.py používa pamäťovú cache, parameters.htm/timer.htm každých
-300 s iba pri zapnutom read tokene, expirácia 900 s; API GET nemá pumpové/DB operácie.
-Režimy sa čítajú z existujúceho telemetry snapshotu. Neznáme kódy/hodnoty null,
-žiadne nové riadiace príkazy ani DB zápisy. Lokálne 36 backend/release testov
-prešlo; HA projekt má 88 HA-native + 22 standalone/HTTP testov a overený kontrakt.
-Podrobnosti HOME_ASSISTANT_API.md a dokumentácia HA projektu. Nenasadené,
-distribučné SHA e3b7497/testing a 1541979/main sa touto implementáciou nemenia.
-
-1. 11. 2026: lokálne pripravené read-only HA API v1, dedikovaný odvolateľný token,
-perzistentné UID mimo telemetrickej DB a admin UI v Informáciách o zariadení.
-Podrobný kontrakt a hranice: [HOME_ASSISTANT_API.md](HOME_ASSISTANT_API.md).
-Následne doplnený mDNS publisher `_sema._tcp.local.` na povolenom LAN rozhraní
-(predvolene wlan0:80), aktívny iba pri zapnutom HA API. Po odvolaní tokenu
-oznam stiahne. Do oznamu nepatria token/hash ani údaje pumpy. HA integrácia
-má zodpovedajúci discovery flow s tokenovým potvrdením a overením UID.
-UI má tlačidlo kopírovania tokenu aj fallback pre HTTP a manuálne označenie.
-Na výslovný pokyn používateľa nasadené iba na sema-001/testing: dashboard
-1.3.0-testing.1, release e3b749744888df28a65d918f09c6bf8d872220c0.
-Zeroconf 0.151.1/ifaddr 0.2.0 boli osobitne nainštalované do runtime venv;
-updater ich neinštaluje. Distribučný main zostal 1541979, ostatné zariadenia
-a produkčný portál sa nemenili. HA integrácia sa vyvíja samostatne
-v sema-home-assistant a do používateľovho HA nebola nainštalovaná.
-Lokálne kontroly tejto zmeny: 32 unittest testov (API/discovery/telemetria/release),
-frontend production build a git diff --check prešli. Build hlási CSS upozornenie
-na DaisyUI @property. Kopírovanie tokenu je overené lokálnym Chromium testom
-s mock API. Následne živé info/state, tokenová ochrana, oddelenie oprávnení,
-mDNS na wlan0 a stiahnutie oznamu po odvolaní prešli na sema-001. DB, env,
-účty a nastavenia zachované; záloha a presný priebeh v SEMA_001_TESTING.md.
-Dočasný HA token odvolaný, používateľ si vytvorí vlastný v Informáciách o zariadení.
-HA webUI a objavenie zariadenia z HA/OMV ešte neboli testované.
-
 Interaktívne historické grafy vytvárať primárne v portáli. Prenos je predvolene hodinový s ručným stiahnutím, limity a protokol v TELEMETRY.md. Retencia/agregácia zatiaľ nie je dohodnutá; nemaž dáta svojvoľne. Nové vydanie najskôr testing a overenie sema-001; produkcia iba samostatným povýšením presného release SHA.
 
 Spustenie/testy: README.md. Synchronizácia: DEVELOPMENT_WORKFLOW.md. Release: RELEASE_WORKFLOW.md. Zmeny sú v zdrojovej development; nezamieňať s distribučným testing.
+
+## Servisné API – vývoj 3. 11. 2026
+
+Nové portal-only endpointy maintenance: reštart dashboardu/RPi a update existujúceho kanála. Trvalé idempotentné UUID mimo checkoutu, kontrola admina aj proxy tokenu, žiadny LAN/HA bypass, ochrana aktívneho updatu a proti opakovaniu po strate odpovede. Kompletných 44 testov dashboardu prešlo. Nasadenie neprebehlo; najskôr samostatne autorizovať testing sema-001. Portál má implementovanú záložku Servis a prídavnú schému 8; docs/DEVICE_MAINTENANCE.md.
+
+## Servisné API na sema-001 – 3. 11. 2026
+
+Testing a82beea/1.3.0-testing.4 nasadený cez existujúci updater, capabilities a roly aj lokálny portál overené. DB/env/HA zachované; zákaznícky main 1541979 nezmenený. Živé servisné akcie zatiaľ nevykonané; podrobnosti v DEVICE_MAINTENANCE.md.
+
+## Falošné zlyhanie self-reštartu – 3. 11. 2026
+
+Potvrdený SIGTERM/-15 pomocného systemctl procesu pri úspešnom reštarte sema.service. Záporný návrat už lokálne neznačí failed; čaká sa na nový proces/boot. Deväť izolovaných servisných testov prešlo. Bez vydania opravy na sema-001; čaká sa na používateľské testy a spoločný release. Podrobnosti docs/DEVICE_MAINTENANCE.md.
+
+## SIGTERM oprava na sema-001 – 3. 11. 2026
+
+Na nový výslovný pokyn nasadený testing a4c9031/1.3.0-testing.5, 9 kandidátskych testov prešlo. API/služby/DB a servisná história/env/HA overené. Záloha before-self-restart-fix-20261103-214456; nový používateľský test zostáva otvorený. Produkcia a iné jednotky nezmenené. Podrobnosti DEVICE_MAINTENANCE.md.
+
+## Produkčný release jednotiek – 4. 11. 2026
+
+Presný otestovaný a4c9031 povýšený do distribučného main cez promote_release.sh; testing rovnaký, sema-001 na ňom stále beží. Starší venv sema-005 overený izolovaným startupom kandidáta bez voliteľných HA discovery závislostí; jej živá služba ani HEAD sa nemenili. Zariadenia dostanú release pri bežnom update. Produkčný portál čaká na sudo deploy 2bf17b4/schému 8. Podrobnosti DEVICE_MAINTENANCE.md.

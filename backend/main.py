@@ -58,7 +58,7 @@ from data.config.config import CONFIG
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from datetime import timedelta
 from auth import (
@@ -77,6 +77,8 @@ from services.heat_curve_service import (
     load_heating_main_temp,
     set_heating_main_temp,
     set_heating_main_temp_reference,
+    load_heating_curve_coefficient,
+    save_heating_curve_coefficient,
 )
 
 DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -110,7 +112,11 @@ class SetbackUpdate(BaseModel):
 
 
 class HeatingMainTempUpdate(BaseModel):
-    value: float
+    value: float = Field(allow_inf_nan=False)
+
+
+class HeatingCurveCoefficientUpdate(BaseModel):
+    value: float = Field(ge=0.1, multiple_of=0.1, allow_inf_nan=False)
 
 class AccountUpdate(BaseModel):
     username: str
@@ -334,6 +340,19 @@ def get_heating_main_temp(trusted=Depends(require_trusted_access),):
     return {
         "heatingMainTemp": load_heating_main_temp()
     }
+
+
+@app.get(f"{API_BASE}/heating-main-temp/coefficient")
+def get_heating_curve_coefficient(current_user=Depends(require_admin),
+                                 trusted=Depends(require_trusted_access)):
+    return {"coefficient": load_heating_curve_coefficient()}
+
+
+@app.post(f"{API_BASE}/heating-main-temp/coefficient")
+def post_heating_curve_coefficient(data: HeatingCurveCoefficientUpdate,
+                                  current_user=Depends(require_admin),
+                                  trusted=Depends(require_trusted_access)):
+    return save_heating_curve_coefficient(data.value)
 
 
 @app.post(f"{API_BASE}/heating-main-temp")

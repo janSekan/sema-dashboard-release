@@ -143,6 +143,7 @@ Na Raspberry Pi systemd používa virtuálne prostredie `/home/jan/sema/.venv`, 
 ## Ďalšia dokumentácia
 
 - [Stav sema-001](docs/SEMA_001_TESTING.md) – aktivovaný testing kanál, nainštalovaný commit a záloha.
+- [Koeficient posunu krivky](docs/HEATING_COEFFICIENT.md) – nastavenie pre admina, výpočet a presnosť čerpadla.
 - [Release workflow](docs/RELEASE_WORKFLOW.md) – aktuálny postup testing → overenie → produkcia, zapnutie kanála a návrat na main.
 - [Deployment](docs/DEPLOYMENT.md) a [staršie poznámky DEPLO](docs/DEPLO.md) – historické prevádzkové a inštalačné postupy; release/update rieši aktuálny návod vyššie.
 - [Troubleshooting](docs/TROUBLESHOOTING.md), [first boot](docs/FIRST_BOOT.md), [tvorba image](docs/MAKE_IMAGE.md) a [persistent mode](docs/persistent%20mode.md).
