@@ -14,7 +14,7 @@ import time
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from data.config.config import DEVICE_ID, PROXY_TOKEN
-from services.device_info import get_versions
+from services.software_info import software_info
 
 ACTIONS = ('restart_dashboard', 'reboot', 'update')
 TERMINAL = ('success', 'failed', 'unknown')
@@ -149,7 +149,7 @@ def dispatch(job_id):
 def capabilities(response: Response):
     response.headers['Cache-Control'] = 'no-store'
     return dict(device_id=DEVICE_ID, version=1, actions=list(ACTIONS), channel=channel(),
-                dashboard_version=get_versions()['dashboard'])
+                dashboard_version=software_info()['version'], software=software_info())
 
 
 @router.get('/jobs/{job_id}', dependencies=[Depends(authorize)])

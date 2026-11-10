@@ -1,4 +1,5 @@
 from telemetry import collector, source_id, export_events
+from services.software_info import software_info
 from ha_api import router as ha_router, store as ha_store
 from ha_discovery import HADiscovery
 from contextlib import suppress
@@ -126,6 +127,7 @@ class WifiConnectRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    software_info()
     init_db()
     await asyncio.to_thread(ha_store.update)
     app.state.ha_discovery = HADiscovery(ha_store)
@@ -645,6 +647,7 @@ def sync_status(
 ):
     return {
         "status": "online",
+        "software": software_info(),
         "device_id": DEVICE_ID,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "errors": ([{"code": "general_fault", "message": "Čerpadlo hlási všeobecnú chybu."}]

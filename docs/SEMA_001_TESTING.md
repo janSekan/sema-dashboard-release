@@ -1,5 +1,23 @@
 # sema-001 – aktivovaný testovací kanál
 
+## Tooltipy nasadené na sema-001 – 10. 11. 2026
+
+Dashboard 1.3.2-testing.2, release `2c70d2ef77401bb568df6fce2860d284c0b80f13`,
+zdrojový kandidát `fdcea03`, lokálny implementation commit `c4c59e9`. Používateľ
+schválil iba sema-001. Aktualizácia existujúcou službou success/exit 0, živý SHA
+zhodný, sema/nginx/update timer active a NRestarts=0. Backend, skripty, konfigurácie
+a závislosti sú bajtovo nezmenené oproti testing 333d4a2; main zostáva 7f8ef75.
+
+Pred update súkromná SQLite/env/HA/servisná záloha
+`/home/jan/sema-backups/before-tooltips-testing-20261110-180050`, 41 678 meraní.
+Po update integrity_check ok, účty/app_settings/env/auth.py.bak aj HA súbor
+a servisné joby zachované, počet meraní neklesol. Frontend aj nové assety HTTP 200
+a bajtovo zhodné s nasadenými súbormi. GET kontroly piatich rolí úspešné.
+Bez riadiacich POST čerpadlu. Prešli 3 parser testy, build a 14 mock browser
+scenárov; ďalší živý dotykový test vykoná používateľ. Texty sa upravujú v
+SETTINGS_TOOLTIPS.sk.md, potom treba nový frontend build/release. Zdrojový push
+ani nasadenie na produkčný portál/iné zariadenia sa nevykonali.
+
 ## Nové roly nasadené na sema-001 – 10. 11. 2026
 
 Používateľ schválil lokálny portál a všetky dokončené dashboardové úpravy na

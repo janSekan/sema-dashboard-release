@@ -88,13 +88,15 @@ def get_rpi_model() -> str | None:
 
 
 def get_device_info() -> dict:
+    from services.software_info import software_info
     return {
+        "software": software_info(),
         "deviceId": os.getenv("DEVICE_ID"),
         "hostname": get_hostname(),
         "localIp": get_local_ip("wlan0"),
         "tailscaleIp": get_tailscale_ip(),
         "uptime": get_uptime(),
-        "semaOsVersion": get_versions()["semaos"],
-        "dashboardVersion": get_versions()["dashboard"],
+        "semaOsVersion": get_versions().get("semaos"),
+        "dashboardVersion": get_versions().get("dashboard"),
 
     }
