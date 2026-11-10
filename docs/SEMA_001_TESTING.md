@@ -1,5 +1,30 @@
 # sema-001 – aktivovaný testovací kanál
 
+## Nové roly nasadené na sema-001 – 10. 11. 2026
+
+Používateľ schválil lokálny portál a všetky dokončené dashboardové úpravy na
+sema-001 testing. Dashboard 1.3.2-testing.1, release
+`333d4a2da99e5446e9eacdaee86fe86a7f5871fe`, kandidát zdrojov `7cdf10e`.
+Obsahuje Superuser/Supervízor, odstránené Účty, koeficient aj TÚV 0–60 °C.
+HA integrácia zachovaná z už vydaného kódu, hardvérové súbory sa nebalili.
+Testing história zahŕňa aktuálny produkčný TÚV hotfix; main zostal
+`7f8ef759ad6125b19a2aa302ec32eac546d6e73b`. Zdrojový push neprebehol.
+
+Pred aktualizáciou overené hostname/DEVICE_ID/kanál testing a vytvorená SQLite
+záloha `/home/jan/sema-backups/before-roles-testing-20261110-153722` (41 647 meraní)
+vrátane env a auth.py.bak. Existujúci updater skončil success/exit 0, živý SHA
+zhodný, sema/nginx/timer active a NRestarts=0. GET kontroly všetkých piatich rolí
+potvrdili oprávnenia, pôvodná správa účtov 410; frontend aj assety HTTP 200,
+DB integrity_check ok, účty/app_settings/env/auth.py.bak zachované. Bez pumpových
+riadiacich POST. 67 testov presného kandidáta lokálne a 22 izolovaných testov
+na existujúcom Python 3.13 jednotky (mock pumpy/dočasná DB) prešlo.
+
+Portál beží lokálne na http://localhost:5173, plný backend http://localhost:8000,
+s trvalou súkromnou preview DB a vypnutým automatickým sync. Heartbeat a ručný
+front fungujú; prihlásené API aj proxy k sema-001 overené. Nové roly testovať
+cez lokálny portál na aktualizovanej sema-001. Produkčný portál ani ostatné
+jednotky neboli menené. Živé používateľské skúšky zostávajú na používateľovi.
+
 Overené 30. 10. 2026 cez SSH, používateľ `jan`, Tailscale IP `100.89.145.76`. Hostname aj `DEVICE_ID` sú `sema-001`.
 
 ## Aktuálny stav

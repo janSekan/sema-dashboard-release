@@ -154,3 +154,5 @@ Na Raspberry Pi systemd používa virtuálne prostredie `/home/jan/sema/.venv`, 
 - [Zber histórie, microSD a synchronizácia do portálu](docs/TELEMETRY.md).
 
 Používanie a oprávnenia: [používateľský manuál](docs/USER_MANUAL.md), [kontrakt rolí](docs/ROLES.md).
+
+- [Upraviteľné texty tooltipov Nastavení](docs/SETTINGS_TOOLTIPS.sk.md) – zmeniť text pod identifikátorom, zostaviť frontend a vydať update.

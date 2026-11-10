@@ -1,5 +1,53 @@
 # Stav a odovzdanie práce – SEMA Dashboard
 
+## Tooltipy Nastavení – 10. 11. 2026, pripravené na testing
+
+Zapojených 28 používateľom upravených textov z SETTINGS_TOOLTIPS.sk.md cez Vite
+raw import pri zostavení. Stabilné settings.* identifikátory, obyčajný text,
+redakčné poznámky sa nezobrazujú. Zmenený Markdown vyžaduje nový build/release.
+Hover/fokus otvára bublinu, kliknutie pripne, druhé kliknutie/mimo/Escape zatvorí.
+Pri akciách je samostatná pomoc, ktorá nič neukladá ani neovláda. Existujúce roly
+rešpektované. Zúžené mobilné rozostupy/formulár v Nastaveniach pre 320 px.
+
+Prešli 3 Node testy parsera, build a 14 mock browser scenárov (všetky roly, hover,
+klik, klávesnica, bezpečné akčné help tlačidlá, téma, dotyk 390/320 px). Všetkých
+28 textov používateľa zachovaných presne. Cielený ESLint prešiel; IpAddressInput
+má jeden pôvodný set-state-in-effect nález, porovnaný bez nových nálezov.
+Backend/DB/pumpové príkazy sa nemenia. Nasadenie iba sema-001 schválené používateľom.
+
+## Texty tooltipov Nastavení – 10. 11. 2026
+
+Pripravený návrh 28 slovenských tooltipov v [SETTINGS_TOOLTIPS.sk.md](SETTINGS_TOOLTIPS.sk.md)
+so stálymi identifikátormi settings.*. Obsahuje polia, body krivky aj ukladacie
+akcie. Neoverené detaily regulátora sú označené v poznámkach, nie domyslené.
+Súbor zatiaľ nie je načítavaný aplikáciou; bez kódovej zmeny, pushu a nasadenia.
+Ďalší krok: používateľská revízia textov, až potom samostatné zapojenie.
+
+## Nové roly nasadené na sema-001 – 10. 11. 2026
+
+Používateľ schválil lokálny portál a všetky dokončené dashboardové úpravy na
+sema-001 testing. Dashboard 1.3.2-testing.1, release
+`333d4a2da99e5446e9eacdaee86fe86a7f5871fe`, kandidát zdrojov `7cdf10e`.
+Obsahuje Superuser/Supervízor, odstránené Účty, koeficient aj TÚV 0–60 °C.
+HA integrácia zachovaná z už vydaného kódu, hardvérové súbory sa nebalili.
+Testing história zahŕňa aktuálny produkčný TÚV hotfix; main zostal
+`7f8ef759ad6125b19a2aa302ec32eac546d6e73b`. Zdrojový push neprebehol.
+
+Pred aktualizáciou overené hostname/DEVICE_ID/kanál testing a vytvorená SQLite
+záloha `/home/jan/sema-backups/before-roles-testing-20261110-153722` (41 647 meraní)
+vrátane env a auth.py.bak. Existujúci updater skončil success/exit 0, živý SHA
+zhodný, sema/nginx/timer active a NRestarts=0. GET kontroly všetkých piatich rolí
+potvrdili oprávnenia, pôvodná správa účtov 410; frontend aj assety HTTP 200,
+DB integrity_check ok, účty/app_settings/env/auth.py.bak zachované. Bez pumpových
+riadiacich POST. 67 testov presného kandidáta lokálne a 22 izolovaných testov
+na existujúcom Python 3.13 jednotky (mock pumpy/dočasná DB) prešlo.
+
+Portál beží lokálne na http://localhost:5173, plný backend http://localhost:8000,
+s trvalou súkromnou preview DB a vypnutým automatickým sync. Heartbeat a ručný
+front fungujú; prihlásené API aj proxy k sema-001 overené. Nové roly testovať
+cez lokálny portál na aktualizovanej sema-001. Produkčný portál ani ostatné
+jednotky neboli menené. Živé používateľské skúšky zostávajú na používateľovi.
+
 ## Supervízor – 10. 11. 2026, iba lokálne
 
 Nová rola supervisor (Supervízor) má čítanie portálu ako admin, bez zápisu.
