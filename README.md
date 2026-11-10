@@ -152,3 +152,5 @@ Na Raspberry Pi systemd používa virtuálne prostredie `/home/jan/sema/.venv`, 
 `.env`, databázy, tokeny, heslá a virtuálne prostredia nepatria do Gitu. Pred zmenami na živom zariadení over jeho identitu a pred zásahom do dát urob zálohu. Testovací kanál oddeľuje distribúciu kódu; na sema-001 stále ovládaš svoje reálne čerpadlo.
 
 - [Zber histórie, microSD a synchronizácia do portálu](docs/TELEMETRY.md).
+
+Používanie a oprávnenia: [používateľský manuál](docs/USER_MANUAL.md), [kontrakt rolí](docs/ROLES.md).

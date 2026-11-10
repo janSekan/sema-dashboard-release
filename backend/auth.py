@@ -43,7 +43,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
-VALID_ROLES = ["user", "admin", "superadmin"]
+VALID_ROLES = ["user", "superuser", "supervisor", "admin", "superadmin"]
+
+
+def can_configure_pump(role: str) -> bool:
+    return role in {"superuser", "supervisor", "admin", "superadmin"}
 
 
 def get_user_by_username(username: str):
@@ -108,6 +112,8 @@ def get_current_user(
     proxy_user = get_proxy_user(request)
 
     if proxy_user:
+        if proxy_user["role"] not in VALID_ROLES:
+            raise HTTPException(status_code=403, detail="Unknown role")
         return User(
             username=proxy_user["username"],
             role=proxy_user["role"],
@@ -148,11 +154,17 @@ def get_current_user(
     )
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role not in ["admin", "superadmin"]:
+    if current_user.role not in ["supervisor", "admin", "superadmin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
+    return current_user
+
+
+def require_pump_configurator(current_user: User = Depends(get_current_user)) -> User:
+    if not can_configure_pump(current_user.role):
+        raise HTTPException(status_code=403, detail="Technical pump settings access required")
     return current_user
 
 def require_superadmin(current_user: User = Depends(get_current_user)) -> User:

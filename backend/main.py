@@ -18,8 +18,6 @@ from db import (
     get_measurements_after_id,
     get_config, 
     set_config, 
-    set_account, 
-    get_account
     )
 from fastapi.middleware.cors import CORSMiddleware
 from services.wifi_service import is_setup_mode, scan_wifi_networks, connect_wifi, touch_wifi_setup_lock
@@ -69,8 +67,9 @@ from auth import (
     get_current_user,
     require_admin,
     require_superadmin,
-    get_account_by_role,
-    password_hash,
+    require_pump_configurator,
+    can_configure_pump,
+    oauth2_scheme,
 )
 
 from services.heat_curve_service import (
@@ -96,14 +95,17 @@ class SettingsUpdate(BaseModel):
     maxIndoorHeat: float
     minWaterTemp: float
     maxWaterTemp: float
-    constant: int
-    limitWater: float
-    limitHeat: float
-    limitCool: float
-    coolerTemp: float
-    bivalentTemp: float
-    timeLimitWater: int
-    heatCurve: Dict[str, float]
+    constant: Optional[int] = None
+    limitWater: Optional[float] = None
+    limitHeat: Optional[float] = None
+    limitCool: Optional[float] = None
+    coolerTemp: Optional[float] = None
+    bivalentTemp: Optional[float] = None
+    timeLimitWater: Optional[int] = None
+    heatCurve: Optional[Dict[str, float]] = None
+
+
+BASIC_SETTINGS = {"minIndoorCool", "maxIndoorHeat", "minWaterTemp", "maxWaterTemp"}
 
 class SetbackUpdate(BaseModel):
     heatOffset: float
@@ -117,10 +119,6 @@ class HeatingMainTempUpdate(BaseModel):
 
 class HeatingCurveCoefficientUpdate(BaseModel):
     value: float = Field(ge=0.1, multiple_of=0.1, allow_inf_nan=False)
-
-class AccountUpdate(BaseModel):
-    username: str
-    password: Optional[str] = None
 
 class WifiConnectRequest(BaseModel):
     ssid: str
@@ -233,15 +231,21 @@ def get_setup_mode():
         "setupMode": is_setup_mode()
     }
     
+def require_wifi_access(request: Request, token=Depends(oauth2_scheme)):
+    # First-boot provisioning remains possible before connecting to the portal.
+    if not is_setup_mode():
+        return require_admin(get_current_user(request, token))
+
+
 @app.get(f"{API_BASE}/wifi/scan")
-def wifi_scan():
+def wifi_scan(access=Depends(require_wifi_access)):
     touch_wifi_setup_lock()
     return {
         "networks": scan_wifi_networks()
     }
 
 @app.post(f"{API_BASE}/wifi/connect")
-def wifi_connect(data: WifiConnectRequest):
+def wifi_connect(data: WifiConnectRequest, access=Depends(require_wifi_access)):
     touch_wifi_setup_lock()
     result = connect_wifi(data.ssid, data.password)
 
@@ -343,20 +347,21 @@ def get_heating_main_temp(trusted=Depends(require_trusted_access),):
 
 
 @app.get(f"{API_BASE}/heating-main-temp/coefficient")
-def get_heating_curve_coefficient(current_user=Depends(require_admin),
+def get_heating_curve_coefficient(current_user=Depends(require_pump_configurator),
                                  trusted=Depends(require_trusted_access)):
     return {"coefficient": load_heating_curve_coefficient()}
 
 
 @app.post(f"{API_BASE}/heating-main-temp/coefficient")
 def post_heating_curve_coefficient(data: HeatingCurveCoefficientUpdate,
-                                  current_user=Depends(require_admin),
+                                  current_user=Depends(require_pump_configurator),
                                   trusted=Depends(require_trusted_access)):
     return save_heating_curve_coefficient(data.value)
 
 
 @app.post(f"{API_BASE}/heating-main-temp")
-def post_heating_main_temp(data: HeatingMainTempUpdate,trusted=Depends(require_trusted_access),):
+def post_heating_main_temp(data: HeatingMainTempUpdate, current_user=Depends(get_current_user),
+                           trusted=Depends(require_trusted_access)):
     try:
         return set_heating_main_temp(data.value, build_parameters_payload)
     except Exception as e:
@@ -374,10 +379,13 @@ def get_parameters(trusted=Depends(require_trusted_access),):
     
 
 @app.get(f"{API_BASE}/settings")
-def get_settings(trusted=Depends(require_trusted_access),):
+def get_settings(current_user=Depends(get_current_user), trusted=Depends(require_trusted_access)):
     try:
         html = fetch_parameters_html()
-        return parse_settings_params(html)
+        data = parse_settings_params(html)
+        return data if can_configure_pump(current_user.role) else {
+            key: value for key, value in data.items() if key in BASIC_SETTINGS
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -407,7 +415,7 @@ def device_health():
 
 
 @app.post(f"{API_BASE}/control")
-def update_control(data: ControlUpdate, trusted=Depends(require_trusted_access),):
+def update_control(data: ControlUpdate, current_user=Depends(get_current_user), trusted=Depends(require_trusted_access)):
     try:
         print("CONTROL DATA:", data)
 
@@ -448,7 +456,7 @@ def login(data: LoginRequest, trusted=Depends(require_trusted_access),):
 def post_heating_main_temp_reference(
     data: HeatingMainTempUpdate,
     trusted=Depends(require_trusted_access),
-    # current_user=Depends(require_admin),
+    current_user=Depends(require_pump_configurator),
 ):
     try:
         return set_heating_main_temp_reference(data.value)
@@ -472,51 +480,43 @@ def get_my_account(current_user=Depends(get_current_user),trusted=Depends(requir
 
 
 def build_parameters_payload(current_form: dict, data):
-    def val(key):
-        return data[key] if isinstance(data, dict) else getattr(data, key)
-
     form = current_form.copy()
-
-    form["p3"] = str(encode_temp_value(val("minIndoorCool")))
-    form["p4"] = str(encode_temp_value(val("maxIndoorHeat")))
-    form["p5"] = str(int(val("constant")))
-
-    heat_curve = val("heatCurve")
-
-    form["p7"] = str(encode_temp_value(heat_curve["-20"]))
-    form["p8"] = str(encode_temp_value(heat_curve["-12"]))
-    form["p9"] = str(encode_temp_value(heat_curve["-4"]))
-    form["p10"] = str(encode_temp_value(heat_curve["4"]))
-    form["p11"] = str(encode_temp_value(heat_curve["12"]))
-    form["p12"] = str(encode_temp_value(heat_curve["20"]))
-
-    form["p13"] = str(encode_percentage_value(val("limitWater")))
-    form["p14"] = str(encode_temp_value(val("minWaterTemp")))
-    form["p15"] = str(encode_temp_value(val("maxWaterTemp")))
-    form["p16"] = str(encode_percentage_value(val("limitHeat")))
-    form["p17"] = str(encode_percentage_value(val("limitCool")))
-    form["p18"] = str(encode_temp_value(val("coolerTemp")))
-    form["p19"] = str(encode_bivalent_temp(val("bivalentTemp")))
-    form["p22"] = str(int(val("timeLimitWater")))
-
+    values = data if isinstance(data, dict) else data.model_dump(exclude_unset=True)
+    mappings = {
+        "minIndoorCool": ("p3", encode_temp_value), "maxIndoorHeat": ("p4", encode_temp_value),
+        "constant": ("p5", int), "limitWater": ("p13", encode_percentage_value),
+        "minWaterTemp": ("p14", encode_temp_value), "maxWaterTemp": ("p15", encode_temp_value),
+        "limitHeat": ("p16", encode_percentage_value), "limitCool": ("p17", encode_percentage_value),
+        "coolerTemp": ("p18", encode_temp_value), "bivalentTemp": ("p19", encode_bivalent_temp),
+        "timeLimitWater": ("p22", int),
+    }
+    for name, (key, encode) in mappings.items():
+        if name in values and values[name] is not None:
+            form[key] = str(encode(values[name]))
+    if values.get("heatCurve") is not None:
+        for point, key in zip(("-20", "-12", "-4", "4", "12", "20"), range(7, 13)):
+            form[f"p{key}"] = str(encode_temp_value(values["heatCurve"][point]))
     return form
 
 
 @app.post(f"{API_BASE}/settings")
-def post_settings(data: SettingsUpdate, trusted=Depends(require_trusted_access),):
+def post_settings(data: SettingsUpdate, current_user=Depends(get_current_user),
+                  trusted=Depends(require_trusted_access)):
+    supplied = data.model_fields_set
+    if not can_configure_pump(current_user.role) and supplied - BASIC_SETTINGS:
+        raise HTTPException(403, "Technical pump settings access required")
     try:
         html = fetch_parameters_html()
         current_form = extract_all_parameter_inputs(html)
         payload = build_parameters_payload(current_form, data)
 
         post_parameters_form(payload)
-        print(payload)
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post(f"{API_BASE}/setback")
-def post_setback(data: SetbackUpdate, trusted=Depends(require_trusted_access),):
+def post_setback(data: SetbackUpdate, current_user=Depends(get_current_user), trusted=Depends(require_trusted_access)):
     try:
         # 1. uloženie offsetov do parameters.htm
         params_html = fetch_parameters_html()
@@ -559,7 +559,7 @@ def build_timer_payload(current_form: dict, schedule: dict):
 
 
 @app.get(f"{API_BASE}/config")
-def load_config(trusted=Depends(require_trusted_access),):
+def load_config(current_user=Depends(require_admin), trusted=Depends(require_trusted_access)):
 
     result = {}
 
@@ -573,7 +573,7 @@ def load_config(trusted=Depends(require_trusted_access),):
 
 
 @app.post(f"{API_BASE}/config")
-def save_config(payload: dict,trusted=Depends(require_trusted_access),):
+def save_config(payload: dict, current_user=Depends(require_admin), trusted=Depends(require_trusted_access)):
 
     for frontend_key, value in payload.items():
 
@@ -590,93 +590,11 @@ def save_config(payload: dict,trusted=Depends(require_trusted_access),):
     return {"ok": True}
 
 
-@app.get(API_BASE +"/accounts/{role}")
-def get_account_info(
-    role: str,
-    current_user=Depends(get_current_user),
-    trusted=Depends(require_trusted_access),
-):
-    valid_roles = ["user", "admin", "superadmin"]
+# Local credential management is retired; existing SQLite logins are preserved.
+@app.api_route(API_BASE + "/accounts/{role}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+def retired_account_management(role: str):
+    raise HTTPException(410, "Správa účtov prebieha výhradne cez SEMA Portal.")
 
-    if role not in valid_roles:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid role",
-        )
-
-    if current_user.role == "user":
-        allowed = ["user"]
-
-    elif current_user.role == "admin":
-        allowed = ["user", "admin"]
-
-    elif current_user.role == "superadmin":
-        allowed = ["user", "admin", "superadmin"]
-
-    else:
-        allowed = []
-
-    if role not in allowed:
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied",
-        )
-
-    account = get_account_by_role(role)
-
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
-
-    return account
-
-
-@app.post( API_BASE + "/accounts/{role}")
-def update_account(
-    role: str,
-    data: AccountUpdate,
-    current_user=Depends(get_current_user),
-    trusted=Depends(require_trusted_access),
-):
-
-    if current_user.role == "user":
-        allowed = ["user"]
-
-    elif current_user.role == "admin":
-        allowed = ["user", "admin"]
-
-    elif current_user.role == "superadmin":
-        allowed = ["user", "admin", "superadmin"]
-
-    else:
-        allowed = []
-
-    if role not in allowed:
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied",
-        )
-
-    current_account = get_account(role)
-
-    if not current_account:
-        raise HTTPException(status_code=404, detail="Account not found")
-
-    password_hash_value = current_account["password_hash"]
-
-    if data.password and data.password.strip():
-        password_hash_value = password_hash.hash(data.password)
-
-    set_account(
-        role=role,
-        username=data.username,
-        password_hash=password_hash_value,
-    )
-
-    return {
-        "ok": True,
-        "role": role,
-        "username": data.username,
-    }
 
 @app.get(f"{API_BASE}/sync/measurements")
 def sync_measurements(

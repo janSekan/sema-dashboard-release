@@ -24,3 +24,25 @@ zostávajú po reštarte/update. Netreba migráciu schémy ani nové Python záv
 
 Výpočty a chybové stavy: `tests/test_heating_coefficient.py`, výhradne dočasná DB
 a mock čerpadla. Živú zmenu teploty vykonáva používateľ až pri vlastnom testovaní.
+
+## Overené testing nasadenie 8. 11. 2026
+
+Iba sema-001, release `bb340d1169c07f1f8dc93b6a6b457f7e8cdab700`, verzia
+1.3.0-testing.6. Existujúca sema-update.service skončila success/exit 0; sema, nginx
+a update timer sú aktívne, NRestarts=0. Distribučný main zostal a4c9031; ostatné
+jednotky ani produkčný portál sa nemenili. Zdrojové commity sú zatiaľ iba lokálne.
+
+Súkromná konzistentná záloha na jednotke:
+`/home/jan/sema-backups/before-heating-coefficient-20261108-210220`.
+Po update overené SHA, frontend aj asset HTTP 200, koeficient 1,0, admin/superadmin
+200, používateľ 403, anonym 401, integrity_check a zachovanie účtov/nastavení,
+meraní, lokálneho env/HA súboru a auth.py.bak. Overovanie neposlalo riadiaci POST.
+
+Prešlo 56 lokálnych testov, frontend build a UI kontrola admin/superadmin/user
+(krok, predvyplnenie, uloženie/obnova, validácia, chyba HTTP, žiadny koeficientový
+request používateľa). Priamo v existujúcom Python 3.13 prostredí jednotky prešlo
+11 nových izolovaných testov nad kandidátom s mockovaným čerpadlom.
+
+Používateľský živý test: obnoviť stránku Nastavenia na sema-001, skontrolovať pole
+a podľa potreby uložiť koeficient. Zmena koeficientu samotná čerpadlo nenastavuje;
+až **Uložiť** zmenenú teplotu posúva krivku. Test reálneho posunu je na používateľovi.

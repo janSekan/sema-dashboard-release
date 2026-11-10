@@ -1,7 +1,8 @@
 # Lokálne read-only API pre Home Assistant
 
-Stav 1. 11. 2026: nasadené iba na **sema-001/testing**, dashboard 1.3.0-testing.1,
-release e3b749744888df28a65d918f09c6bf8d872220c0. Živé API a mDNS na wlan0 overené;
+Stav 1. 11. 2026: nasadené iba na **sema-001/testing**, dashboard 1.3.0-testing.2,
+release 0553775b9ddc2cb8be4efa5390e8aa82efb0d7ea. Živé API revízie 2 overené z HA;
+v predchádzajúcej revízii aj mDNS na wlan0;
 produkčný main ani ostatné zariadenia sa nemenili. Podrobnosti v SEMA_001_TESTING.md.
 Read-only HA prototyp v samostatnom projekte sema-home-assistant má klienta,
 formulár, koordinátor a entity, zatiaľ je overený iba proti mock dátam.
@@ -9,7 +10,7 @@ Prvý cieľ HA: Container/Core 2026.9.4. Nevytvárať produkčný release bez te
 
 ## Zapnutie a identita
 
-### Pripravená revízia 2 (zatiaľ nenasadená)
+### Revízia 2 (nasadená na sema-001/testing)
 
 Zdroje rozširujú stále API v1, v info je api_revision=2. Nové capabilities:
 states.power_on/setback/high_tariff, modes.operating_mode/season/activity/
@@ -32,7 +33,9 @@ info_extended/state_extended fixtures a rozšírený používateľský návod.
 Pri plných capabilities 49 entít (31 nových), 25 predvolene zapnutých;
 ostatné servisné hodnoty/krivka/plán sú voliteľné. Aktualizovať treba obe strany
 a znovu načítať HA integráciu, aby sa nové capabilities načítali z info.
-Nasadený testing e3b7497 túto revíziu zatiaľ neobsahuje. Ovládanie je samostatná etapa.
+Testing 0553775 túto revíziu obsahuje. Autentifikovaný klient z používateľovho HA
+overil všetkých 20 nastavení, harmonogram, čerstvý snapshot a zachovanú identitu.
+Existujúci HA token zostal nezmenený. Ovládanie je samostatná etapa.
 
 Administrátor/superadmin otvorí Informácie o zariadení → Home Assistant.
 Vytvorenie tokenu zároveň zapne API; nový token okamžite odvolá starý.
