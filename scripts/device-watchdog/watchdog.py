@@ -286,6 +286,11 @@ def singleton():
         raise
 
 
+def create_health_store():
+    from health_events import SafeHealthEvents
+    return SafeHealthEvents(emit)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--check', action='store_true', help='One read-only probe; no state writes/actions')
@@ -295,6 +300,7 @@ def main():
         emit('check', observation=probes(), updating=updating())
         return
     daemon_fd = singleton()  # Keep descriptor alive until process exit.
+    health_store = create_health_store()
     policy = Policy(config)
     last = None
     heartbeat = 0
@@ -309,6 +315,7 @@ def main():
         except OSError:
             paused = True
         try:
+            health_store.call('snapshot', observation, config['mode'], paused or start < config['startup_grace'])
             actions = policy.evaluate(observation, start, paused)
             snapshot = dict(observation=observation, paused=paused)
             if snapshot != last or start - heartbeat >= 600:
@@ -321,9 +328,11 @@ def main():
                     continue
                 policy.actions['reboot_attempt' if action == 'reboot' else action] = start
                 diagnostic()
+                health_store.call('action', action, 'requested' if config['mode'] == 'recover' else 'observe_only', config['mode'])
                 emit('recovery_requested', action=action, mode=config['mode'], observation=observation)
-                emit('recovery', action=action, observation=observation,
-                     outcome=recover(action, config) if config['mode'] == 'recover' else 'observe_only')
+                outcome = recover(action, config) if config['mode'] == 'recover' else 'observe_only'
+                health_store.call('action', action, outcome, config['mode'])
+                emit('recovery', action=action, observation=observation, outcome=outcome)
         finally:
             if fd is not None:
                 os.close(fd)

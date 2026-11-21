@@ -203,3 +203,25 @@ používajú falošný systemctl a nedokazujú nasadenie cez obmedzené sudo na 
 - 36 pôvodných testov samotného watchdogu zostáva úspešných.
 
 Zatiaľ žiadny source push, release ani nasadenie tejto distribučnej zmeny.
+
+
+## Živé testing overenie distribúcie – 21. 11. 2026
+
+Testing 1.4.1/817e561 nasadený iba na sema-001 po zálohe DB. Prvý update
+preniesol nový kód; druhý skutočne spustil jednorazový root install job cez
+existujúce sudo systemctl. Výsledok skip_current zachoval recover a pôvodný
+watchdog proces; runtime unit aj staging odstránené. Backend/frontend/asset
+200, DB ok, uptime zachovaný. Tým je overená cesta oprávnení a idempotencia
+na už chránenej jednotke. Úplne prvá automatická inštalácia na čistom RPi aj
+ďalší nočný reboot zostávajú na overenie. Produkčný main nezmenený.
+
+
+## Nová telemetria do portálu – 21. 11. 2026, iba lokálne
+
+health_events.py uchová max. 5000 porúch/obnov/akcií v samostatnej root:jan
+SQLite, zdravý status v RAM. Backend exportuje read-only, batch max. 100,
+UUID/cursor/gap iba pre platný token + superadmin rolu. Prenos cez existujúci
+heartbeat bez extra spojení. Inštalátor aktualizuje helper a service Group=jan
+s prístupnými RAM/DB adresármi. Živý testing 1.4.1 zostáva pôvodný; nová funkcia
+sa nenasadila. Najprv portál s migráciou 9 → 10 po zálohe DB, potom skúšobná
+jednotka. Viac sema-portal/docs/SUPERADMIN_DIAGNOSTICS.md. SMTP sa nepridávalo.

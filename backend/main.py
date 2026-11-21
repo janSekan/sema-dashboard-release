@@ -643,9 +643,12 @@ async def sync_flush(trusted=Depends(require_portal_sync)):
 
 @app.get(f"{API_BASE}/sync/status")
 def sync_status(
+    request: Request,
+    watchdog_after: int = Query(0, ge=0),
+    watchdog_source: str | None = Query(None, max_length=36),
     trusted=Depends(require_portal_sync),
 ):
-    return {
+    result = {
         "status": "online",
         "software": software_info(),
         "device_id": DEVICE_ID,
@@ -655,6 +658,11 @@ def sync_status(
         "pump_available": collector.previous.get('available.status'),
         "observed_at": collector.last_observed['ts'] if collector.last_observed else None,
     }
+    if request.headers.get('X-SEMA-Proxy-Role') == 'superadmin':
+        from services.watchdog_health import export_watchdog
+        result['watchdog'] = export_watchdog(watchdog_after, watchdog_source)
+    return result
+
 
 
 if APP_ENV == "production":

@@ -26,12 +26,13 @@ done
 python3 - "$here" <<'PY'
 import ast, sys
 from pathlib import Path
-ast.parse((Path(sys.argv[1])/'watchdog.py').read_text())
+for name in ('watchdog.py', 'health_events.py'):
+    ast.parse((Path(sys.argv[1])/name).read_text())
 PY
 systemd-analyze verify "$here/sema-device-watchdog.service"
 backup=$(mktemp -d /var/backups/sema-device-watchdog-XXXXXXXX)
 chmod 700 "$backup"
-files=(/usr/local/lib/sema-device-watchdog/watchdog.py /etc/systemd/system/sema-device-watchdog.service /etc/systemd/journald.conf.d/90-sema-device-watchdog.conf /etc/sema-device-watchdog.json)
+files=(/usr/local/lib/sema-device-watchdog/health_events.py /usr/local/lib/sema-device-watchdog/watchdog.py /etc/systemd/system/sema-device-watchdog.service /etc/systemd/journald.conf.d/90-sema-device-watchdog.conf /etc/sema-device-watchdog.json)
 for i in "${!files[@]}"; do
  if [[ -e ${files[$i]} || -L ${files[$i]} ]]; then cp -a -- "${files[$i]}" "$backup/$i"; fi
 done
@@ -52,6 +53,8 @@ rollback() {
 }
 trap rollback ERR
 install -d -m 755 /usr/local/lib/sema-device-watchdog /etc/systemd/journald.conf.d
+install -d -o root -g jan -m 0750 /var/lib/sema-device-health
+install -m 644 "$here/health_events.py" /usr/local/lib/sema-device-watchdog/health_events.py
 install -m 644 "$here/watchdog.py" /usr/local/lib/sema-device-watchdog/watchdog.py
 install -m 644 "$here/sema-device-watchdog.service" /etc/systemd/system/sema-device-watchdog.service
 install -m 644 "$here/journald.conf" /etc/systemd/journald.conf.d/90-sema-device-watchdog.conf

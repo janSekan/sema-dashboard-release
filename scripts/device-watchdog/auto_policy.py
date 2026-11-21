@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 PAYLOAD = {
+    'health_events.py': 'usr/local/lib/sema-device-watchdog/health_events.py',
     'watchdog.py': 'usr/local/lib/sema-device-watchdog/watchdog.py',
     'sema-device-watchdog.service': 'etc/systemd/system/sema-device-watchdog.service',
     'journald.conf': 'etc/systemd/journald.conf.d/90-sema-device-watchdog.conf',

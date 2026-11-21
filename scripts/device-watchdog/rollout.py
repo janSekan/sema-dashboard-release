@@ -12,7 +12,7 @@ import sys
 import tempfile
 
 UNIT = 'sema-device-watchdog-install.service'
-BUNDLE = ('watchdog.py', 'install.sh', 'journald.conf', 'sema-device-watchdog.service', 'auto_policy.py')
+BUNDLE = ('health_events.py', 'watchdog.py', 'install.sh', 'journald.conf', 'sema-device-watchdog.service', 'auto_policy.py')
 PREFIX = 'scripts/device-watchdog/'
 
 
