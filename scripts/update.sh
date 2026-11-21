@@ -68,3 +68,11 @@ git reset --hard "$TARGET"
 
 sudo -n /usr/bin/systemctl restart sema
 sudo -n /usr/bin/systemctl status sema --no-pager
+
+# Optional system migration: failure must not invalidate the dashboard update.
+# An old updater first downloads this hook; it runs on the next invocation.
+if [[ -f scripts/device-watchdog/rollout.py ]]; then
+    if ! /usr/bin/python3 scripts/device-watchdog/rollout.py /home/jan/sema "$TARGET"; then
+        echo "WARNING: Watchdog installation skipped; dashboard update succeeded." >&2
+    fi
+fi

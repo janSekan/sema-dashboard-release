@@ -1,0 +1,31 @@
+[Unit]
+Description=SEMA device dashboard and Tailscale recovery
+After=NetworkManager.service tailscaled.service nginx.service sema.service
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /usr/local/lib/sema-device-watchdog/watchdog.py
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=30
+RuntimeDirectory=sema-device-watchdog
+RuntimeDirectoryMode=0700
+StateDirectory=sema-device-watchdog
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+MemoryMax=80M
+TasksMax=24
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

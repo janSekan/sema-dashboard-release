@@ -158,3 +158,5 @@ Používanie a oprávnenia: [používateľský manuál](docs/USER_MANUAL.md), [k
 - [Upraviteľné texty tooltipov Nastavení](docs/SETTINGS_TOOLTIPS.sk.md) – zmeniť text pod identifikátorom, zostaviť frontend a vydať update.
 
 - [Verzie, zostavenia a dostupné aktualizácie](docs/VERSIONING.md).
+
+Ochrana dashboardu/Tailscale a distribúcia pozorovacieho režimu: [DEVICE_WATCHDOG.md](docs/DEVICE_WATCHDOG.md).
