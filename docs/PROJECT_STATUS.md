@@ -196,3 +196,8 @@ Na nový výslovný pokyn nasadený testing a4c9031/1.3.0-testing.5, 9 kandidát
 ## Produkčný release jednotiek – 4. 11. 2026
 
 Presný otestovaný a4c9031 povýšený do distribučného main cez promote_release.sh; testing rovnaký, sema-001 na ňom stále beží. Starší venv sema-005 overený izolovaným startupom kandidáta bez voliteľných HA discovery závislostí; jej živá služba ani HEAD sa nemenili. Zariadenia dostanú release pri bežnom update. Produkčný portál čaká na sudo deploy 2bf17b4/schému 8. Podrobnosti DEVICE_MAINTENANCE.md.
+
+## Kandidát produkcie1.4.3
+
+Priame main vydanie na používateľský pokyn; DERP + chránený updater,
+174 lokálnych testov; živé testing preskočené. WATCHDOG_RELEASE_143.md.

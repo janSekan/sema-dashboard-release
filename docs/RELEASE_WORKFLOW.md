@@ -148,3 +148,8 @@ Diagnostika chýb `Permission denied` v Git a rozdiel medzi sudo právami a vlas
 sú popísané v [Automatické aktualizácie: vlastníctvo Git a sudo](UPDATE_OWNERSHIP.md).
 Nový updater ponúka `--check` bez stiahnutia/reštartu; na starom updateri tento parameter
 nepoužívať. Git nespúšťať cez `sudo git ...`.
+
+## Výnimka1.4.3
+
+Používateľ výslovne autorizoval priamy main release23.11.2026 bez testing/001.
+Nejde o zmenu štandardného workflow. Limity: WATCHDOG_RELEASE_143.md.

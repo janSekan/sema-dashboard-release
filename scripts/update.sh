@@ -11,11 +11,11 @@ if [[ $(id -un) != jan ]]; then
     exit 1
 fi
 case "${1:-}" in
-    ''|--check) ;;
-    *) echo "Usage: $0 [--check]" >&2; exit 2 ;;
+    ''|--check|--retry-failed) ;;
+    *) echo "Usage: $0 [--check|--retry-failed]" >&2; exit 2 ;;
 esac
 if (( $# > 1 )); then
-    echo "Usage: $0 [--check]" >&2
+    echo "Usage: $0 [--check|--retry-failed]" >&2
     exit 2
 fi
 
@@ -56,23 +56,10 @@ if [[ ${1:-} == --check ]]; then
     exit 0
 fi
 
-# Prevent timer and manual updates from running at the same time.
-exec 9>.git/sema-update.lock
-flock -n 9 || { echo "Another SEMA update is running." >&2; exit 1; }
-
-echo "Fetching SEMA channel: $CHANNEL"
-git fetch origin "+refs/heads/$CHANNEL:refs/remotes/origin/$CHANNEL"
-TARGET=$(git rev-parse --verify "refs/remotes/origin/$CHANNEL^{commit}")
-echo "Installing release: $TARGET"
-git reset --hard "$TARGET"
-
-sudo -n /usr/bin/systemctl restart sema
-sudo -n /usr/bin/systemctl status sema --no-pager
-
-# Optional system migration: failure must not invalidate the dashboard update.
-# An old updater first downloads this hook; it runs on the next invocation.
-if [[ -f scripts/device-watchdog/rollout.py ]]; then
-    if ! /usr/bin/python3 scripts/device-watchdog/rollout.py /home/jan/sema "$TARGET"; then
-        echo "WARNING: Watchdog installation skipped; dashboard update succeeded." >&2
-    fi
+# Python loads the transaction engine before replacing the checkout. Its root-owned
+# recovery copy is independent of a broken/missing candidate updater.
+if [[ ! -f /home/jan/sema/scripts/update_manager.py ]]; then
+    echo "Protected update manager is missing. Update aborted before fetch/reset." >&2
+    exit 1
 fi
+exec /usr/bin/python3 /home/jan/sema/scripts/update_manager.py "$@"

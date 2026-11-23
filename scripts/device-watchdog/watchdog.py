@@ -108,11 +108,15 @@ def tailscale():
             return dict(tailscale='needs_operator', peer='unknown')
         healthy = status.get('BackendState') == 'Running' and status.get('Self', {}).get('Online') is True
         peers = [p for p in (status.get('Peer') or {}).values() if p.get('Online')]
+        # Prefer the portal, then stable Linux peers; JSON/map order is not policy.
+        peers.sort(key=lambda p: (p.get('HostName') != 'sema-portal',
+                                  p.get('OS') != 'linux', str(p.get('HostName') or ''),
+                                  tuple(p.get('TailscaleIPs') or [])))
         peer_state = 'unknown'
         for p in peers[:2]:
             for addr in p.get('TailscaleIPs', [])[:1]:
                 ipaddress.ip_address(addr)
-                rc, _ = command('tailscale', 'ping', '--timeout=2s', '--c=1', addr, timeout=4)
+                rc, _ = command('tailscale', 'ping', '--until-direct=false', '--timeout=2s', '--c=1', addr, timeout=4)
                 peer_state = 'ok' if rc == 0 else 'failed'
                 if rc == 0:
                     return dict(tailscale='ok' if healthy else 'failed', peer='ok')

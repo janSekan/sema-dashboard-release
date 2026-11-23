@@ -1,0 +1,11 @@
+[Unit]
+Description=Recover an interrupted SEMA application update
+After=local-fs.target network-online.target
+
+[Service]
+Type=oneshot
+User=jan
+Group=jan
+ExecStart=/usr/bin/python3 /usr/local/lib/sema-update/update_manager.py --recover-only
+TimeoutStartSec=240
+UMask=0077
