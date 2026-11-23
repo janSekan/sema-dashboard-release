@@ -107,9 +107,11 @@ def atomic_json(path, data):
 
 
 def trusted_file(path, data):
-    if not path.is_file() or path.is_symlink():return False
-    stat=path.stat();parent=path.parent.stat()
-    return stat.st_uid==0 and parent.st_uid==0 and not (stat.st_mode | parent.st_mode) & 0o022 and path.read_bytes()==data
+    try:
+        if not path.is_file() or path.is_symlink():return False
+        stat=path.stat();parent=path.parent.stat()
+        return stat.st_uid==0 and parent.st_uid==0 and not (stat.st_mode | parent.st_mode) & 0o022 and path.read_bytes()==data
+    except OSError:return False
 
 
 def ensure_guard(repo, commit):
@@ -126,7 +128,9 @@ def ensure_guard(repo, commit):
         result = run('git', '-C', str(repo), 'show', f'{commit}:{relative}')
         if result.returncode: raise UpdateError('recovery_bundle_missing')
         payload[name] = result.stdout
-    if GUARD.exists() and ctl('is-enabled','--quiet','sema-update-recovery.timer').returncode:
+    try:guard_exists=GUARD.exists()
+    except PermissionError:guard_exists=GUARD.parent.exists()
+    if guard_exists and ctl('is-enabled','--quiet','sema-update-recovery.timer').returncode:
         raise UpdateError('recovery_guard_disabled')
     if all(trusted_file(dest, payload[name]) for name,dest in targets.items()):
         if ctl('is-active', '--quiet', 'sema-update-recovery.timer').returncode == 0:

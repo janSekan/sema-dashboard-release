@@ -28,7 +28,11 @@ def install(source, files=FILES, backups=Path('/var/backups')):
     try:
         for name,dest in files.items():
             if dest.is_symlink():raise ValueError('Refusing symlink destination')
+            if dest.parent.is_symlink():raise ValueError('Refusing symlink directory')
             dest.parent.mkdir(mode=0o755,parents=True,exist_ok=True)
+            # Explicit mode: mkdir(0755) is reduced to0700 by our private umask.
+            # Only public program code is made traversable; backups stay private.
+            if name=='update_manager.py':dest.parent.chmod(0o755)
             # Replace instead of rewriting a live Python file in place.
             fd,temp=tempfile.mkstemp(dir=dest.parent,prefix='.install-')
             try:
@@ -36,6 +40,10 @@ def install(source, files=FILES, backups=Path('/var/backups')):
                     out.write((source/name).read_bytes());out.flush();os.fsync(out.fileno())
                 os.chmod(temp,0o644);os.replace(temp,dest)
             finally:Path(temp).unlink(missing_ok=True)
+        # Verify access as the actual service user, not as this root installer.
+        execute('/usr/sbin/runuser','-u','jan','--','/usr/bin/python3','-c',
+                'import pathlib,sys; p=pathlib.Path(sys.argv[1]); compile(p.read_bytes(),str(p),"exec")',
+                str(files['update_manager.py']))
         execute('systemctl','daemon-reload')
         execute('systemctl','enable',TIMER)
         execute('systemctl','restart',TIMER)
